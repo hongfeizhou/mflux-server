@@ -95,3 +95,11 @@ def test_set_default(client):
 def test_set_default_unknown_404(client):
     r = client.post("/admin/api/models/ghost/default", headers=_auth(client))
     assert r.status_code == 404
+
+
+def test_list_models_via_session_cookie(client):
+    assert client.get("/admin/api/models").status_code == 401
+    pw = client.app.state.config.admin_password
+    client.post("/admin/login", data={"password": pw})
+    r = client.get("/admin/api/models")
+    assert r.status_code == 200

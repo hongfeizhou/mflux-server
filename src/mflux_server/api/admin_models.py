@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from mflux_server.api.auth import require_api_key
+from mflux_server.admin.auth import require_admin
 
-router = APIRouter(prefix="/admin/api", dependencies=[Depends(require_api_key)])
+router = APIRouter(prefix="/admin/api", dependencies=[Depends(require_admin)])
 
 
 @router.get("/models")
