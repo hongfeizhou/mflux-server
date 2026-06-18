@@ -15,6 +15,9 @@ class GenerationRequest:
     seed: Optional[int] = None
     lora: list = field(default_factory=list)
     quantize: Optional[int] = None
+    init_image: Optional[bytes] = None
+    image_strength: Optional[float] = None
+    negative_prompt: Optional[str] = None
 
 
 @dataclass
