@@ -1,15 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
-from mflux_server.api import files, openai
+from mflux_server.api import admin_models, files, openai
 
 
-def create_app(config, registry, job_queue, history) -> FastAPI:
+def create_app(config, registry, job_queue, history, model_manager=None) -> FastAPI:
     app = FastAPI(title="mflux-server")
     app.state.config = config
     app.state.registry = registry
     app.state.queue = job_queue
     app.state.history = history
+    app.state.models = model_manager
 
     @app.on_event("startup")
     def _start_worker():
@@ -30,4 +31,5 @@ def create_app(config, registry, job_queue, history) -> FastAPI:
 
     app.include_router(openai.router)
     app.include_router(files.router)
+    app.include_router(admin_models.router)
     return app

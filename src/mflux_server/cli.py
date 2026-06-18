@@ -5,6 +5,7 @@ from pathlib import Path
 from mflux_server.app import create_app
 from mflux_server.engines.mflux_image import MfluxImageEngine
 from mflux_server.engines.registry import EngineRegistry
+from mflux_server.models.manager import ModelManager
 from mflux_server.queue import JobQueue
 from mflux_server.storage.config import DEFAULT_BASE, ConfigStore
 from mflux_server.storage.history import HistoryStore
@@ -12,13 +13,24 @@ from mflux_server.storage.history import HistoryStore
 
 def build_app_from_config():
     base = Path(os.environ.get("MFLUX_SERVER_HOME", str(DEFAULT_BASE)))
-    config = ConfigStore(base_dir=base).load()
+    store = ConfigStore(base_dir=base)
+    config = store.load()
     registry = EngineRegistry()
     registry.register(MfluxImageEngine())
     job_queue = JobQueue(registry)
     history = HistoryStore(output_dir=config.output_dir)
-    return create_app(config=config, registry=registry,
-                      job_queue=job_queue, history=history)
+
+    def _save_default(name):
+        config.default_model = name
+        store.save(config)
+
+    manager = ModelManager(
+        models_provider=registry.models,
+        default_model=config.default_model,
+        on_set_default=_save_default,
+    )
+    return create_app(config=config, registry=registry, job_queue=job_queue,
+                      history=history, model_manager=manager)
 
 
 def main():
