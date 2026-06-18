@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mflux-server · {% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="/admin/static/app.css">
+  <script src="/admin/static/htmx.min.js" defer></script>
+</head>
+<body>
+  {% if show_nav is not defined or show_nav %}
+  <nav class="nav">
+    <span class="brand">mflux-server</span>
+    <a href="/admin">仪表盘</a>
+    <a href="/admin/models">模型</a>
+    <a href="/admin/gallery">画廊</a>
+    <a href="/admin/settings">设置</a>
+    <a class="right" href="/admin/logout">登出</a>
+  </nav>
+  {% endif %}
+  <main class="main">{% block content %}{% endblock %}</main>
+</body>
+</html>

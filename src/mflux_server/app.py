@@ -1,6 +1,11 @@
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
+from mflux_server.admin import web as admin_web
 from mflux_server.api import admin_models, files, openai
 
 
@@ -29,6 +34,10 @@ def create_app(config, registry, job_queue, history, model_manager=None) -> Fast
             }},
         )
 
+    app.add_middleware(SessionMiddleware, secret_key=config.api_key)
+    _static = Path(__file__).parent / "admin" / "static"
+    app.mount("/admin/static", StaticFiles(directory=str(_static)), name="admin-static")
+    app.include_router(admin_web.router)
     app.include_router(openai.router)
     app.include_router(files.router)
     app.include_router(admin_models.router)
