@@ -1,0 +1,17 @@
+<div class="row" style="gap:24px">
+  <div class="card" style="flex:1"><div class="muted">运行中</div><div style="font-size:24px">{{ running|length }}</div></div>
+  <div class="card" style="flex:1"><div class="muted">队列等待</div><div style="font-size:24px">{{ queued|length }}</div></div>
+  <div class="card" style="flex:1"><div class="muted">已完成</div><div style="font-size:24px">{{ done }}</div></div>
+  <div class="card" style="flex:1"><div class="muted">历史图片</div><div style="font-size:24px">{{ total_history }}</div></div>
+</div>
+{% if running or queued %}
+<div class="card">
+  <table>
+    <tr><th>任务</th><th>状态</th><th>模型</th><th>提示词</th></tr>
+    {% for j in running + queued %}
+    <tr><td>{{ j.id[:8] }}</td><td><span class="tag">{{ j.status }}</span></td>
+        <td>{{ j.request.model }}</td><td class="muted">{{ j.request.prompt[:40] }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}<p class="muted">队列空闲</p>{% endif %}

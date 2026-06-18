@@ -2,5 +2,5 @@
 {% block title %}仪表盘{% endblock %}
 {% block content %}
 <h1>仪表盘</h1>
-<div id="status">加载中…</div>
+<div id="status" hx-get="/admin/api/status" hx-trigger="load, every 2s">加载中…</div>
 {% endblock %}
