@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from mflux_server.admin import web as admin_web
+from mflux_server.admin import history_api, web as admin_web
 from mflux_server.api import admin_models, files, openai
 
 
@@ -41,4 +41,5 @@ def create_app(config, registry, job_queue, history, model_manager=None) -> Fast
     app.include_router(openai.router)
     app.include_router(files.router)
     app.include_router(admin_models.router)
+    app.include_router(history_api.router)
     return app
