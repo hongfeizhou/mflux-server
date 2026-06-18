@@ -12,6 +12,7 @@ from mflux_server.engines.base import BaseEngine, GenerationRequest, ModelInfo
 @dataclass
 class _ModelSpec:
     name: str
+    repo_id: str
     family: str
     default_steps: int
     # loader(quantize) -> mflux 模型实例。懒加载：函数体内才 import mflux。
@@ -26,8 +27,8 @@ def _load_z_image_turbo(quantize):
 # 当前支持的模型表。新增模型 = 在此处加一行 _ModelSpec（机制已完整，无需改其他代码）。
 _SPECS = {
     "z-image-turbo": _ModelSpec(
-        name="z-image-turbo", family="z-image", default_steps=9,
-        loader=_load_z_image_turbo,
+        name="z-image-turbo", repo_id="Tongyi-MAI/Z-Image-Turbo",
+        family="z-image", default_steps=9, loader=_load_z_image_turbo,
     ),
 }
 
@@ -41,7 +42,7 @@ class MfluxImageEngine(BaseEngine):
     def models(self) -> list:
         return [
             ModelInfo(name=s.name, family=s.family, engine=self.id,
-                      capabilities=["text-to-image"])
+                      capabilities=["text-to-image"], repo_id=s.repo_id)
             for s in _SPECS.values()
         ]
 

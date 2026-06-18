@@ -26,6 +26,7 @@ class ModelInfo:
     family: str
     engine: str
     capabilities: list
+    repo_id: Optional[str] = None
 
 
 class BaseEngine(ABC):

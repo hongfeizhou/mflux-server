@@ -63,3 +63,9 @@ def test_img2img_writes_init_image_and_passes_path(monkeypatch):
     assert call["image_strength"] == 0.6
     assert call["image_path"] is not None
     assert not os.path.exists(call["image_path"])
+
+
+def test_model_has_repo_id():
+    engine = mflux_image.MfluxImageEngine()
+    infos = {m.name: m for m in engine.models()}
+    assert infos["z-image-turbo"].repo_id == "Tongyi-MAI/Z-Image-Turbo"
