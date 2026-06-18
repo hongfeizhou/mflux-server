@@ -78,3 +78,23 @@ def test_list_models(client):
     assert r.status_code == 200
     ids = [m["id"] for m in r.json()["data"]]
     assert "fake-model" in ids
+
+
+def test_edits_img2img_returns_b64_and_passes_init_image(client):
+    files = {"image": ("src.png", b"\x89PNG-source", "image/png")}
+    data = {"prompt": "make it blue", "model": "fake-model",
+            "strength": "0.55", "size": "256x256"}
+    r = client.post("/v1/images/edits", headers=_auth(client), files=files, data=data)
+    assert r.status_code == 200
+    body = r.json()
+    assert base64.b64decode(body["data"][0]["b64_json"]) == ONE_PX_PNG
+    req = client.app.state.registry.engine_for("fake-model").calls[-1]
+    assert req.init_image == b"\x89PNG-source"
+    assert req.image_strength == 0.55
+    assert (req.width, req.height) == (256, 256)
+
+
+def test_edits_requires_api_key(client):
+    files = {"image": ("src.png", b"\x89PNG", "image/png")}
+    r = client.post("/v1/images/edits", files=files, data={"prompt": "x"})
+    assert r.status_code == 401

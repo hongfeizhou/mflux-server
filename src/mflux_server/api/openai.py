@@ -2,7 +2,7 @@ import base64
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
 from mflux_server.api.auth import require_api_key
@@ -32,6 +32,28 @@ def _parse_size(size: str):
         raise HTTPException(status_code=400, detail=f"Invalid size: {size!r}")
 
 
+def _run_and_build(request: Request, gen_req: GenerationRequest, prompt: str,
+                   model_name: str, response_format: str, size: str):
+    state = request.app.state
+    job = state.queue.submit(gen_req)
+    state.queue.wait(job, timeout=600)
+    if job.status != "done":
+        raise HTTPException(status_code=500, detail=job.error or "Generation timed out")
+    params = {"steps": gen_req.steps, "guidance": gen_req.guidance,
+              "seed": gen_req.seed, "size": size,
+              "image_strength": gen_req.image_strength}
+    data = []
+    for image_bytes in job.result:
+        entry = state.history.save(image_bytes, prompt=prompt,
+                                   model=model_name, params=params)
+        if response_format == "url":
+            base = str(request.base_url).rstrip("/")
+            data.append({"url": f"{base}/files/{entry.id}.png"})
+        else:
+            data.append({"b64_json": base64.b64encode(image_bytes).decode()})
+    return {"created": int(time.time()), "data": data}
+
+
 @router.post("/v1/images/generations", dependencies=[Depends(require_api_key)])
 def generations(body: GenerationsBody, request: Request):
     state = request.app.state
@@ -46,23 +68,39 @@ def generations(body: GenerationsBody, request: Request):
         guidance=body.guidance, seed=body.seed,
         lora=body.lora, quantize=body.quantize,
     )
-    job = state.queue.submit(gen_req)
-    state.queue.wait(job, timeout=600)
-    if job.status != "done":
-        raise HTTPException(status_code=500, detail=job.error or "Generation timed out")
+    return _run_and_build(request, gen_req, body.prompt, model_name,
+                          body.response_format, body.size)
 
-    params = {"steps": body.steps, "guidance": body.guidance,
-              "seed": body.seed, "size": body.size}
-    data = []
-    for image_bytes in job.result:
-        entry = state.history.save(image_bytes, prompt=body.prompt,
-                                   model=model_name, params=params)
-        if body.response_format == "url":
-            base = str(request.base_url).rstrip("/")
-            data.append({"url": f"{base}/files/{entry.id}.png"})
-        else:
-            data.append({"b64_json": base64.b64encode(image_bytes).decode()})
-    return {"created": int(time.time()), "data": data}
+
+@router.post("/v1/images/edits", dependencies=[Depends(require_api_key)])
+async def edits(
+    request: Request,
+    image: UploadFile = File(...),
+    prompt: str = Form(...),
+    model: Optional[str] = Form(None),
+    n: int = Form(1),
+    size: str = Form("1024x1024"),
+    response_format: str = Form("b64_json"),
+    steps: Optional[int] = Form(None),
+    guidance: Optional[float] = Form(None),
+    seed: Optional[int] = Form(None),
+    strength: Optional[float] = Form(None),
+    negative_prompt: Optional[str] = Form(None),
+    quantize: Optional[int] = Form(None),
+):
+    state = request.app.state
+    model_name = model or state.config.default_model
+    if state.registry.find_model(model_name) is None:
+        raise HTTPException(status_code=404, detail=f"Model not found: {model_name}")
+    width, height = _parse_size(size)
+    init_bytes = await image.read()
+    gen_req = GenerationRequest(
+        model=model_name, prompt=prompt, n=n, width=width, height=height,
+        steps=steps, guidance=guidance, seed=seed, quantize=quantize,
+        init_image=init_bytes, image_strength=strength,
+        negative_prompt=negative_prompt,
+    )
+    return _run_and_build(request, gen_req, prompt, model_name, response_format, size)
 
 
 @router.get("/v1/models", dependencies=[Depends(require_api_key)])
