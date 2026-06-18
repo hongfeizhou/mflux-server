@@ -60,15 +60,34 @@ class MfluxImageEngine(BaseEngine):
         images = []
         for i in range(req.n):
             seed = req.seed + i if req.seed is not None else random.randint(0, 2**31 - 1)
-            generated = model.generate_image(
-                prompt=req.prompt,
-                seed=seed,
-                num_inference_steps=steps,
-                width=req.width,
-                height=req.height,
-            )
-            images.append(self._to_png_bytes(generated))
+            init_path = None
+            try:
+                kwargs = dict(
+                    prompt=req.prompt,
+                    seed=seed,
+                    num_inference_steps=steps,
+                    width=req.width,
+                    height=req.height,
+                    guidance=req.guidance,
+                    negative_prompt=req.negative_prompt,
+                )
+                if req.init_image is not None:
+                    init_path = self._write_init_image(req.init_image)
+                    kwargs["image_path"] = init_path
+                    kwargs["image_strength"] = req.image_strength
+                generated = model.generate_image(**kwargs)
+                images.append(self._to_png_bytes(generated))
+            finally:
+                if init_path is not None:
+                    os.unlink(init_path)
         return images
+
+    @staticmethod
+    def _write_init_image(data: bytes) -> str:
+        fd, tmp = tempfile.mkstemp(suffix=".png")
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+        return tmp
 
     @staticmethod
     def _to_png_bytes(generated) -> bytes:
