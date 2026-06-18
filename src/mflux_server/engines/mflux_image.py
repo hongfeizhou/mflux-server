@@ -1,5 +1,6 @@
 import os
 import random
+import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -71,11 +72,12 @@ class MfluxImageEngine(BaseEngine):
 
     @staticmethod
     def _to_png_bytes(generated) -> bytes:
-        # mflux 返回对象保证有 .save(path)；用临时文件取 PNG 字节，避免耦合其内部类型
-        fd, tmp = tempfile.mkstemp(suffix=".png")
-        os.close(fd)
+        # mflux 的 GeneratedImage.save(path) 不会覆盖已存在的文件，所以必须存到一个
+        # 尚不存在的路径。用临时目录 + 全新文件名，再读回 PNG 字节，避免耦合其内部类型。
+        tmpdir = tempfile.mkdtemp()
         try:
+            tmp = os.path.join(tmpdir, "image.png")
             generated.save(tmp)
             return Path(tmp).read_bytes()
         finally:
-            os.unlink(tmp)
+            shutil.rmtree(tmpdir, ignore_errors=True)
