@@ -6,8 +6,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from mflux_server.admin.auth import is_authed, require_admin
+from mflux_server.admin.i18n import i18n_context, SUPPORTED
 
-TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+TEMPLATES = Jinja2Templates(
+    directory=str(Path(__file__).parent / "templates"),
+    context_processors=[i18n_context],
+)
 router = APIRouter()
 
 
@@ -29,13 +33,21 @@ def login_submit(request: Request, password: str = Form(...)):
         request.session["authed"] = True
         return RedirectResponse(url="/admin", status_code=302)
     return TEMPLATES.TemplateResponse(
-        request, "login.html", {"error": "密码错误"}, status_code=401)
+        request, "login.html", {"error": True}, status_code=401)
 
 
 @router.get("/admin/logout")
 def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/admin/login", status_code=302)
+
+
+@router.get("/admin/setlang")
+def setlang(request: Request, code: str = "en", next: str = "/admin"):
+    resp = RedirectResponse(url=next, status_code=302)
+    if code in SUPPORTED:
+        resp.set_cookie("lang", code, max_age=31536000, httponly=False, samesite="lax")
+    return resp
 
 
 @router.get("/admin", response_class=HTMLResponse)
