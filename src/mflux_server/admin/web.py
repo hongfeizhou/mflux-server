@@ -167,5 +167,6 @@ async def generate_action(
     for image_bytes in job.result:
         entry = state.history.save(image_bytes, prompt=prompt, model=model_name,
                                    params={"size": size, "steps": steps, "seed": seed,
-                                           "image_strength": strength})
+                                           "image_strength": strength,
+                                           "duration": round(job.duration, 2) if job.duration is not None else None})
     return TEMPLATES.TemplateResponse(request, "_result.html", {"entry": entry, "error": None})

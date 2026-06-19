@@ -45,6 +45,8 @@ def rerun_history(entry_id: str, request: Request):
         raise HTTPException(status_code=500, detail=job.error or "Generation failed")
     new_entry = None
     for image_bytes in job.result:
-        new_entry = state.history.save(image_bytes, prompt=entry.prompt,
-                                       model=entry.model, params={"size": size})
+        new_entry = state.history.save(
+            image_bytes, prompt=entry.prompt, model=entry.model,
+            params={"size": size, "steps": gen_req.steps, "seed": gen_req.seed,
+                    "duration": round(job.duration, 2) if job.duration is not None else None})
     return {"id": new_entry.id if new_entry else None}

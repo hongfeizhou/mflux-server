@@ -41,7 +41,8 @@ def _run_and_build(request: Request, gen_req: GenerationRequest, prompt: str,
         raise HTTPException(status_code=500, detail=job.error or "Generation timed out")
     params = {"steps": gen_req.steps, "guidance": gen_req.guidance,
               "seed": gen_req.seed, "size": size,
-              "image_strength": gen_req.image_strength}
+              "image_strength": gen_req.image_strength,
+              "duration": round(job.duration, 2) if job.duration is not None else None}
     data = []
     for image_bytes in job.result:
         entry = state.history.save(image_bytes, prompt=prompt,

@@ -8,8 +8,17 @@
   <figure id="hist-{{ e.id }}">
     <a href="/files/{{ e.id }}.png" target="_blank"><img src="/files/{{ e.id }}.png" alt=""></a>
     <figcaption>
-      <div>{{ e.prompt[:60] }}</div>
-      <div class="muted">{{ e.model }}</div>
+      {% set p = e.params or {} %}
+      <div style="word-break:break-word" title="{{ e.prompt }}">{{ e.prompt }}</div>
+      <div class="muted" style="margin-top:4px">{{ e.model }}</div>
+      <div class="muted" style="font-size:11px;margin-top:2px">
+        {% if p.get('size') %}{{ t('hist_size') }} {{ p.get('size') }}{% endif %}
+        {% if p.get('steps') is not none %} · {{ t('hist_steps') }} {{ p.get('steps') }}{% endif %}
+        {% if p.get('seed') is not none %} · {{ t('hist_seed') }} {{ p.get('seed') }}{% endif %}
+        {% if p.get('guidance') is not none %} · {{ t('hist_guidance') }} {{ p.get('guidance') }}{% endif %}
+        {% if p.get('image_strength') is not none %} · {{ t('hist_strength') }} {{ p.get('image_strength') }}{% endif %}
+        {% if p.get('duration') is not none %} · {{ t('hist_time') }} {{ "%.1f"|format(p.get('duration')) }}s{% endif %}
+      </div>
       <div class="row" style="margin-top:6px">
         <button class="btn" hx-post="/admin/api/history/{{ e.id }}/rerun" hx-swap="none">{{ t('btn_regenerate') }}</button>
         <a class="btn" href="/files/{{ e.id }}.png" download>{{ t('btn_download_file') }}</a>

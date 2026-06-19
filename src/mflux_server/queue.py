@@ -16,6 +16,7 @@ class Job:
     status: str = "queued"           # queued | running | done | error
     result: Optional[list] = None    # list[bytes]
     error: Optional[str] = None
+    duration: Optional[float] = None    # 生成耗时（秒）
     created_at: float = field(default_factory=time.time)
     done: threading.Event = field(default_factory=threading.Event)
 
@@ -57,6 +58,7 @@ class JobQueue:
         while True:
             job = self._q.get()
             job.status = "running"
+            started = time.time()
             try:
                 engine = self._registry.engine_for(job.request.model)
                 job.result = engine.generate(job.request)
@@ -65,5 +67,6 @@ class JobQueue:
                 job.error = str(exc) or exc.__class__.__name__
                 job.status = "error"
             finally:
+                job.duration = time.time() - started
                 job.done.set()
                 self._q.task_done()

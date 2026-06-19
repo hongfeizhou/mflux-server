@@ -46,6 +46,12 @@ STRINGS = {
     "btn_regenerate": {"en": "Re-generate", "zh": "重新生成"},
     "btn_download_file": {"en": "Download", "zh": "下载"},
     "confirm_delete_image": {"en": "Delete this image?", "zh": "删除这张？"},
+    "hist_size": {"en": "Size", "zh": "尺寸"},
+    "hist_steps": {"en": "Steps", "zh": "步数"},
+    "hist_seed": {"en": "Seed", "zh": "种子"},
+    "hist_guidance": {"en": "Guidance", "zh": "引导"},
+    "hist_strength": {"en": "Strength", "zh": "强度"},
+    "hist_time": {"en": "Time", "zh": "耗时"},
 
     "settings_title": {"en": "Settings", "zh": "设置"},
     "settings_apikey": {"en": "API Key", "zh": "API Key"},
