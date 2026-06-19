@@ -1,12 +1,14 @@
 import secrets as _secrets
 from pathlib import Path
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from mflux_server.admin.auth import is_authed, require_admin
 from mflux_server.admin.i18n import i18n_context, SUPPORTED
+from mflux_server.engines.base import GenerationRequest
 
 TEMPLATES = Jinja2Templates(
     directory=str(Path(__file__).parent / "templates"),
@@ -107,3 +109,61 @@ def status_fragment(request: Request):
         "done": len([j for j in jobs if j.status == "done"]),
         "total_history": len(state.history.list()),
     })
+
+
+@router.get("/admin/generate", response_class=HTMLResponse)
+def generate_page(request: Request):
+    redirect = _guard(request)
+    if redirect:
+        return redirect
+    models = request.app.state.registry.models()
+    return TEMPLATES.TemplateResponse(request, "generate.html", {"models": models})
+
+
+def _parse_gen_size(size: str):
+    try:
+        w, h = size.lower().split("x")
+        return int(w), int(h)
+    except (ValueError, AttributeError):
+        return 1024, 1024
+
+
+@router.post("/admin/api/generate", response_class=HTMLResponse,
+             dependencies=[Depends(require_admin)])
+async def generate_action(
+    request: Request,
+    prompt: str = Form(...),
+    model: Optional[str] = Form(None),
+    size: str = Form("1024x1024"),
+    steps: Optional[int] = Form(None),
+    seed: Optional[int] = Form(None),
+    negative_prompt: Optional[str] = Form(None),
+    strength: Optional[float] = Form(None),
+    image: Optional[UploadFile] = File(None),
+):
+    state = request.app.state
+    model_name = model or state.config.default_model
+    if state.registry.find_model(model_name) is None:
+        return TEMPLATES.TemplateResponse(
+            request, "_result.html", {"entry": None, "error": f"Model not found: {model_name}"})
+    width, height = _parse_gen_size(size)
+    init_bytes = None
+    if image is not None:
+        data = await image.read()
+        init_bytes = data or None
+    gen_req = GenerationRequest(
+        model=model_name, prompt=prompt, width=width, height=height,
+        steps=steps, seed=seed, negative_prompt=negative_prompt,
+        init_image=init_bytes, image_strength=strength,
+    )
+    job = state.queue.submit(gen_req)
+    state.queue.wait(job, timeout=600)
+    if job.status != "done":
+        return TEMPLATES.TemplateResponse(
+            request, "_result.html", {"entry": None, "error": job.error or "failed"})
+    entry = None
+    for image_bytes in job.result:
+        entry = state.history.save(image_bytes, prompt=prompt, model=model_name,
+                                   params={"size": size, "steps": steps, "seed": seed,
+                                           "image_strength": strength})
+    return TEMPLATES.TemplateResponse(request, "_result.html", {"entry": entry, "error": None})

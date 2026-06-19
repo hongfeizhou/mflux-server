@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ t('generate_title') }}{% endblock %}
+{% block content %}
+<h1>{{ t('generate_title') }}</h1>
+<div class="card">
+  <form hx-post="/admin/api/generate" hx-target="#result" hx-swap="innerHTML"
+        hx-encoding="multipart/form-data" hx-indicator="#gen-ind">
+    <p><label>{{ t('lbl_prompt') }}</label><br>
+       <textarea name="prompt" rows="3" style="width:100%" class="field" required></textarea></p>
+    <div class="row">
+      <label>{{ t('lbl_model') }}
+        <select name="model" class="field">
+          {% for m in models %}<option value="{{ m.name }}">{{ m.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>{{ t('lbl_size') }} <input name="size" value="1024x1024" class="field" style="width:120px"></label>
+      <label>{{ t('lbl_steps') }} <input name="steps" type="number" class="field" style="width:80px"></label>
+      <label>{{ t('lbl_seed') }} <input name="seed" type="number" class="field" style="width:110px"></label>
+    </div>
+    <p><label>{{ t('lbl_negative') }}<br>
+       <input name="negative_prompt" class="field" style="width:100%"></label></p>
+    <div class="row">
+      <label>{{ t('lbl_image') }} <input name="image" type="file" accept="image/*"></label>
+      <label>{{ t('lbl_strength') }} <input name="strength" type="number" step="0.05" min="0" max="1" value="0.6" class="field" style="width:90px"></label>
+    </div>
+    <p><button class="btn" type="submit">{{ t('btn_generate') }}</button>
+       <span id="gen-ind" class="htmx-indicator muted">{{ t('generating') }}</span></p>
+  </form>
+  <p class="muted">{{ t('generate_hint') }}</p>
+</div>
+<div id="result"></div>
+{% endblock %}

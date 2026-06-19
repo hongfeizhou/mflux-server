@@ -1,0 +1,8 @@
+{% if entry %}
+<figure class="card">
+  <a href="/files/{{ entry.id }}.png" target="_blank"><img src="/files/{{ entry.id }}.png" style="max-width:100%;border-radius:8px"></a>
+  <figcaption class="muted">{{ entry.prompt[:80] }}</figcaption>
+</figure>
+{% else %}
+<p class="err">{{ t('generate_failed') }}: {{ error }}</p>
+{% endif %}
