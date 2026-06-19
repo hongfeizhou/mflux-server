@@ -1,35 +1,37 @@
+<!-- Language: **English** · [简体中文](README.zh-CN.md) -->
+
 # mflux-server
 
-把 [mflux](https://github.com/filipstrand/mflux)（FLUX / Z-Image 等图像模型在 Apple MLX 上的移植）封装成一个 **OpenAI 风格的本地图像服务**，自带 **Web 管理面板**。可被官方 OpenAI SDK 直接调用，也可在浏览器里管理模型、查看历史、监控队列。
+Wrap [mflux](https://github.com/filipstrand/mflux) (a port of FLUX / Z-Image and other image models to Apple MLX) into an **OpenAI-style local image service** with a built-in **web admin panel**. Call it directly with the official OpenAI SDK, or manage models, browse history, and monitor the queue from your browser.
 
-> **平台要求：macOS + Apple Silicon（M 系列芯片）。** 推理引擎基于 Apple MLX，仅能在 Apple Silicon 上运行。
-
----
-
-## 特性
-
-- **OpenAI 兼容 API**
-  - `POST /v1/images/generations` —— 文生图
-  - `POST /v1/images/edits` —— 图生图（img2img）
-  - `GET /v1/models` —— 模型列表
-  - 响应/错误体遵循 OpenAI 格式，现有 OpenAI SDK / 客户端零改动接入
-  - 支持 mflux 原生扩展参数：`steps` / `guidance` / `seed` / `negative_prompt` / `quantize` / 图生图 `strength`
-- **Web 管理面板 `/admin`**
-  - 登录（管理密码 + 签名 session）
-  - 仪表盘：队列实时状态（HTMX 轮询）、运行/排队任务、历史计数
-  - 模型管理：列出模型、下载（HuggingFace）、删除本地权重、设默认
-  - 画廊 / 历史：网格浏览、重新生成、下载、删除
-  - 设置：查看 / 重置 API Key、查看默认参数与监听地址
-- **单 worker 串行队列** —— Apple Silicon 一次只跑一个模型，所有生成任务串行执行
-- **纯文件存储** —— 配置 `~/.mflux-server/config.json`，图片 + 元数据存在 `outputs/`，无数据库
-- **可插拔引擎层** —— `BaseEngine` + 注册表，未来接视频/其它引擎只需注册一个新 engine，API 与面板无需改动
-- **零 Node 构建** —— 面板用服务端渲染 + vendored HTMX + 手写 CSS，离线可用
+> **Requires macOS on Apple Silicon (M-series).** The inference engine is built on Apple MLX and runs on Apple Silicon only.
 
 ---
 
-## 安装
+## Features
 
-需要 Python ≥ 3.10（mflux 要求）。推荐用 Homebrew 的 Python：
+- **OpenAI-compatible API**
+  - `POST /v1/images/generations` — text-to-image
+  - `POST /v1/images/edits` — image-to-image (img2img)
+  - `GET /v1/models` — list models
+  - OpenAI-shaped responses and errors, so existing OpenAI SDKs/clients work with zero changes
+  - mflux-native extension params supported: `steps` / `guidance` / `seed` / `negative_prompt` / `quantize`, plus `strength` for img2img
+- **Web admin panel at `/admin`**
+  - Login (admin password + signed session)
+  - Dashboard: live queue status (HTMX polling), running/queued jobs, history counts
+  - Model management: list, download (from HuggingFace), delete local weights, set default
+  - Gallery / history: grid browsing, re-generate, download, delete
+  - Settings: view / regenerate the API key, view default params and bind address
+- **Single-worker serial queue** — Apple Silicon runs one model at a time, so all generation jobs run serially
+- **File-based storage** — config at `~/.mflux-server/config.json`, images + metadata under `outputs/`, no database
+- **Pluggable engine layer** — `BaseEngine` + a registry; adding a video/other engine later only requires registering a new engine, with no changes to the API or panel
+- **No Node build** — the panel is server-rendered with vendored HTMX + hand-written CSS, fully offline
+
+---
+
+## Installation
+
+Requires Python ≥ 3.10 (mflux's requirement). Homebrew's Python is recommended:
 
 ```bash
 git clone https://github.com/hongfeizhou/mflux-server.git
@@ -38,189 +40,189 @@ python3.11 -m venv .venv
 .venv/bin/python -m pip install -e ".[mflux]"
 ```
 
-`mflux` 是可选依赖（`[mflux]` extra），仅在 Apple Silicon 可装。只想跑测试 / 开发不出图，可只装核心 + dev：`pip install -e ".[dev]"`。
+`mflux` is an optional dependency (the `[mflux]` extra) and installs on Apple Silicon only. To just run tests / develop without generating images, install core + dev instead: `pip install -e ".[dev]"`.
 
 ---
 
-## 快速开始
+## Quick start
 
 ```bash
-.venv/bin/mflux-server start          # 默认 127.0.0.1:8000
-# 启动时会打印 API key 和 admin 密码，并写入 ~/.mflux-server/config.json
+.venv/bin/mflux-server start          # defaults to 127.0.0.1:8000
+# On start it prints the API key and admin password, and writes ~/.mflux-server/config.json
 ```
 
-首次运行会自动生成 API Key 与管理密码。可用 `--host` / `--port` 覆盖。
+The first run auto-generates an API key and admin password. Override the bind address with `--host` / `--port`.
 
-### 用 OpenAI SDK 调用
+### With the OpenAI SDK
 
 ```python
 from openai import OpenAI
 
-client = OpenAI(base_url="http://127.0.0.1:8000/v1", api_key="<你的-api-key>")
+client = OpenAI(base_url="http://127.0.0.1:8000/v1", api_key="<your-api-key>")
 
-# 文生图
+# text-to-image
 r = client.images.generate(model="z-image-turbo", prompt="a puffin on a cliff", size="1024x1024")
 print(r.data[0].b64_json[:32])
 ```
 
-### 用 curl
+### With curl
 
 ```bash
-KEY=<你的-api-key>
+KEY=<your-api-key>
 
-# 文生图
+# text-to-image
 curl -s http://127.0.0.1:8000/v1/images/generations \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"model":"z-image-turbo","prompt":"a red apple","size":"512x512","seed":42}'
 
-# 图生图（multipart）
+# image-to-image (multipart)
 curl -s http://127.0.0.1:8000/v1/images/edits \
   -H "Authorization: Bearer $KEY" \
   -F image=@source.png -F prompt="make it watercolor" \
   -F model=z-image-turbo -F strength=0.6 -F size=512x512
 ```
 
-### 管理面板
+### Admin panel
 
-浏览器打开 `http://127.0.0.1:8000/admin`，用启动时打印的 **admin 密码** 登录。
+Open `http://127.0.0.1:8000/admin` and log in with the **admin password** printed at startup.
 
 ---
 
-## API 参考
+## API reference
 
 ### `POST /v1/images/generations`
 
 ```jsonc
 {
-  "model": "z-image-turbo",        // 不传则用默认模型
+  "model": "z-image-turbo",        // falls back to the default model if omitted
   "prompt": "a cat astronaut",
   "n": 1,
   "size": "1024x1024",
-  "response_format": "b64_json",   // 或 "url"（指向 /files/{id}.png）
-  // mflux 扩展参数（可选）
+  "response_format": "b64_json",   // or "url" (points at /files/{id}.png)
+  // mflux extension params (optional)
   "steps": 9, "guidance": 3.5, "seed": 42, "quantize": 8
 }
 ```
 
-响应（OpenAI 格式）：`{ "created": <ts>, "data": [ { "b64_json": "..." } ] }`
+Response (OpenAI format): `{ "created": <ts>, "data": [ { "b64_json": "..." } ] }`
 
-### `POST /v1/images/edits`（multipart/form-data）
+### `POST /v1/images/edits` (multipart/form-data)
 
-字段：`image`（必填，源图）、`prompt`（必填）、`model`、`n`、`size`、`response_format`、`steps`、`guidance`、`seed`、`strength`（图生图强度）、`negative_prompt`、`quantize`。
+Fields: `image` (required, source image), `prompt` (required), `model`, `n`, `size`, `response_format`, `steps`, `guidance`, `seed`, `strength` (img2img strength), `negative_prompt`, `quantize`.
 
 ### `GET /v1/models`
 
-返回 OpenAI models 列表格式。
+Returns the OpenAI models-list format.
 
-### 鉴权
+### Authentication
 
-所有 `/v1/*` 需要 `Authorization: Bearer <api_key>`；`/admin/api/*` 接受 session cookie **或** Bearer key。
+All `/v1/*` endpoints require `Authorization: Bearer <api_key>`. The `/admin/api/*` endpoints accept a session cookie **or** a Bearer key.
 
-### 管理 API（`/admin/api/*`，需登录或 Bearer）
+### Admin API (`/admin/api/*`, requires login or Bearer)
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/admin/api/models` | 模型列表（含下载状态、大小、是否默认）|
-| POST | `/admin/api/models/{name}/download` | 后台下载，返回 `job_id` |
-| GET | `/admin/api/models/downloads/{job_id}` | 下载进度 |
-| DELETE | `/admin/api/models/{name}` | 删除本地权重 |
-| POST | `/admin/api/models/{name}/default` | 设为默认模型 |
-| GET | `/admin/api/history` | 历史列表 |
-| DELETE | `/admin/api/history/{id}` | 删除一条 |
-| POST | `/admin/api/history/{id}/rerun` | 按原参数重新生成 |
-| POST | `/admin/api/regenerate-key` | 重置 API Key |
+| GET | `/admin/api/models` | Model list (with download state, size, default flag) |
+| POST | `/admin/api/models/{name}/download` | Start a background download, returns `job_id` |
+| GET | `/admin/api/models/downloads/{job_id}` | Download progress |
+| DELETE | `/admin/api/models/{name}` | Delete local weights |
+| POST | `/admin/api/models/{name}/default` | Set as the default model |
+| GET | `/admin/api/history` | History list |
+| DELETE | `/admin/api/history/{id}` | Delete one entry |
+| POST | `/admin/api/history/{id}/rerun` | Re-generate with the original params |
+| POST | `/admin/api/regenerate-key` | Rotate the API key |
 
 ---
 
-## 架构
+## Architecture
 
 ```
-FastAPI 单进程 (默认 127.0.0.1:8000)
-  /v1/*    OpenAI 兼容 API ──┐
-  /admin   Web 面板 ─────────┤
-                            ▼
-                   [ 任务队列 (内存) ] 单 worker 串行
-                            ▼
-               [ 引擎注册表 EngineRegistry ]
-                 ├─ MfluxImageEngine (现实现，z-image-turbo)
-                 └─ (预留：视频/其它引擎)
-                            ▼
-                   [ 模型管理器 ] ← HuggingFace
-                            ▼
-         文件存储 ~/.mflux-server/
+Single FastAPI process (default 127.0.0.1:8000)
+  /v1/*    OpenAI-compatible API ──┐
+  /admin   Web panel ─────────────┤
+                                  ▼
+                    [ Job queue (in-memory) ] single worker, serial
+                                  ▼
+                  [ EngineRegistry ]
+                    ├─ MfluxImageEngine (implemented: z-image-turbo)
+                    └─ (reserved: video / other engines)
+                                  ▼
+                    [ Model manager ] ← HuggingFace
+                                  ▼
+         File storage ~/.mflux-server/
            config.json
            outputs/{id}.png + {id}.json
 ```
 
-目录结构：
+Directory layout:
 
 ```
 src/mflux_server/
   cli.py                 # mflux-server start
-  app.py                 # FastAPI 装配
-  api/openai.py          # /v1 路由 + 参数映射
-  api/auth.py            # Bearer 鉴权
+  app.py                 # FastAPI assembly
+  api/openai.py          # /v1 routes + param mapping
+  api/auth.py            # Bearer auth
   api/files.py           # /files/{id}.png
   api/admin_models.py    # /admin/api/models*
   engines/base.py        # GenerationRequest / ModelInfo / BaseEngine
   engines/registry.py    # EngineRegistry
-  engines/mflux_image.py # mflux 引擎（懒加载）
-  queue.py               # 内存单 worker 队列
-  models/manager.py      # 模型下载/删除/设默认
-  admin/                 # 面板：auth / web / history_api / templates / static
+  engines/mflux_image.py # mflux engine (lazy-loaded)
+  queue.py               # in-memory single-worker queue
+  models/manager.py      # model download/delete/set-default
+  admin/                 # panel: auth / web / history_api / templates / static
   storage/config.py      # config.json
-  storage/history.py     # outputs/ 读写
+  storage/history.py     # outputs/ read/write
 ```
 
 ---
 
-## 配置
+## Configuration
 
-`~/.mflux-server/config.json`（首次启动自动生成）：
+`~/.mflux-server/config.json` (auto-generated on first start):
 
-| 字段 | 说明 |
+| Field | Description |
 |---|---|
-| `api_key` | OpenAI 风格 Bearer key（也用作 session 签名密钥）|
-| `admin_password` | 面板登录密码 |
-| `host` / `port` | 监听地址 |
-| `default_model` | 不传 model 时使用的模型 |
-| `default_steps` | 默认推理步数 |
-| `output_dir` | 图片 + 元数据输出目录 |
+| `api_key` | OpenAI-style Bearer key (also used as the session signing secret) |
+| `admin_password` | Panel login password |
+| `host` / `port` | Bind address |
+| `default_model` | Model used when `model` is omitted |
+| `default_steps` | Default inference steps |
+| `output_dir` | Output dir for images + metadata |
 
-可用环境变量 `MFLUX_SERVER_HOME` 覆盖配置/输出根目录（默认 `~/.mflux-server`）。
-
----
-
-## 扩展：新增模型 / 引擎
-
-- **新增 mflux 模型**：在 `engines/mflux_image.py` 的 `_SPECS` 加一行 `_ModelSpec`（名称、repo_id、家族、默认步数、loader），机制已完整，其它代码无需改。
-- **新增引擎（如视频）**：实现 `BaseEngine`（`models()` + `generate()`），在 `cli.build_app_from_config` 里 `registry.register(...)`。队列与 API 通过 `registry.engine_for(model)` 派发，无需改动。
+Set `MFLUX_SERVER_HOME` to override the config/output root (defaults to `~/.mflux-server`).
 
 ---
 
-## 开发与测试
+## Extending: adding models / engines
+
+- **Add an mflux model**: append a `_ModelSpec` row to `_SPECS` in `engines/mflux_image.py` (name, repo_id, family, default steps, loader). The mechanism is complete; nothing else changes.
+- **Add an engine (e.g. video)**: implement `BaseEngine` (`models()` + `generate()`) and `registry.register(...)` it in `cli.build_app_from_config`. The queue and API dispatch via `registry.engine_for(model)`, so they need no changes.
+
+---
+
+## Development & testing
 
 ```bash
 .venv/bin/python -m pip install -e ".[dev]"
 .venv/bin/python -m pytest -q
 ```
 
-测试用 `FakeEngine` 和 mock 的 huggingface_hub，**不下载真实模型、不依赖 mflux**，因此可在任意平台（含 Windows / Linux）跑通；真实出图需在 Apple Silicon 上手动验证。
+Tests use a `FakeEngine` and a mocked huggingface_hub, so they **download no real models and don't depend on mflux** — they run on any platform (including Windows / Linux). Real image generation must be verified manually on Apple Silicon.
 
-设计与实现计划见 `docs/superpowers/`（specs + plans）。
-
----
-
-## 已知限制 / 后续
-
-- 仅 macOS / Apple Silicon（mflux/MLX 限制）。
-- 生成为同步阻塞 + 单 worker 串行，适合单机单用户；高并发非设计目标。
-- 暂未内置视频引擎（架构已预留扩展位）。
-- `@app.on_event` 待迁移到 FastAPI lifespan（当前有 deprecation 警告，不影响功能）。
+Design docs and implementation plans live under `docs/superpowers/` (specs + plans).
 
 ---
 
-## 致谢
+## Known limitations / roadmap
 
-- [mflux](https://github.com/filipstrand/mflux) —— FLUX / Z-Image 等模型的 Apple MLX 移植
-- 写法参照 [jundot/omlx](https://github.com/jundot/omlx)（LLM 版的同类本地服务）
+- macOS / Apple Silicon only (mflux/MLX constraint).
+- Generation is synchronous + single-worker serial — suited to single-machine, single-user use; high concurrency is not a design goal.
+- No built-in video engine yet (the architecture reserves an extension point for it).
+- `@app.on_event` should migrate to FastAPI lifespan (currently emits a deprecation warning; functionality is unaffected).
+
+---
+
+## Acknowledgements
+
+- [mflux](https://github.com/filipstrand/mflux) — the Apple MLX port of FLUX / Z-Image and other models
+- Patterned after [jundot/omlx](https://github.com/jundot/omlx) (a similar local service for LLMs)
