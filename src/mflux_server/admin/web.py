@@ -47,6 +47,15 @@ def dashboard(request: Request):
     return TEMPLATES.TemplateResponse(request, "dashboard.html", {"models": models})
 
 
+@router.get("/admin/models", response_class=HTMLResponse)
+def models_page(request: Request):
+    redirect = _guard(request)
+    if redirect:
+        return redirect
+    models = request.app.state.models.list() if request.app.state.models else []
+    return TEMPLATES.TemplateResponse(request, "models.html", {"models": models})
+
+
 @router.get("/admin/api/status", response_class=HTMLResponse,
             dependencies=[Depends(require_admin)])
 def status_fragment(request: Request):

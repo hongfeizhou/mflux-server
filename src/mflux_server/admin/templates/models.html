@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}模型{% endblock %}
+{% block content %}
+<h1>模型管理</h1>
+<div class="card">
+<table>
+  <tr><th>名称</th><th>家族</th><th>状态</th><th>大小</th><th>操作</th></tr>
+  {% for m in models %}
+  <tr id="model-{{ m.name }}">
+    <td>{{ m.name }} {% if m.is_default %}<span class="tag">默认</span>{% endif %}</td>
+    <td class="muted">{{ m.family }}</td>
+    <td>{% if m.downloaded %}已下载{% else %}<span class="muted">未下载</span>{% endif %}</td>
+    <td class="muted">{% if m.size_gb %}{{ "%.1f"|format(m.size_gb) }} GB{% else %}-{% endif %}</td>
+    <td class="row">
+      {% if not m.downloaded %}
+      <button class="btn" hx-post="/admin/api/models/{{ m.name }}/download" hx-swap="none">下载</button>
+      {% endif %}
+      <button class="btn" hx-post="/admin/api/models/{{ m.name }}/default" hx-swap="none">设为默认</button>
+      {% if m.downloaded %}
+      <button class="btn danger" hx-delete="/admin/api/models/{{ m.name }}"
+              hx-confirm="确认删除 {{ m.name }} 的本地权重？" hx-swap="none">删除</button>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+<p class="muted">下载为后台任务；下载/删除/设默认后刷新本页查看最新状态。</p>
+{% endblock %}

@@ -46,3 +46,14 @@ def test_status_fragment_shows_counts(client):
 def test_status_requires_auth(client):
     fresh = TestClient(client.app)
     assert fresh.get("/admin/api/status").status_code == 401
+
+
+def test_models_page_lists_models(client):
+    r = client.get("/admin/models")
+    assert r.status_code == 200
+    assert "z-image-turbo" in r.text
+
+
+def test_models_page_redirects_anonymous(client):
+    fresh = TestClient(client.app)
+    assert fresh.get("/admin/models", follow_redirects=False).status_code in (302, 307)
