@@ -115,9 +115,12 @@ class ModelManager:
 
     def delete_repo(self, repo_id: str) -> bool:
         path = self._repo_path(repo_id)
-        if path is None or not path.exists():
+        if path is None or not (path.exists() or path.is_symlink()):
             return False
-        shutil.rmtree(path)
+        if path.is_symlink():
+            path.unlink()            # 只删软链，不动被链接的缓存
+        else:
+            shutil.rmtree(path)
         return True
 
     def delete(self, name: str) -> bool:
