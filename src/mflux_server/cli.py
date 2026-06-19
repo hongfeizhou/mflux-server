@@ -29,8 +29,13 @@ def build_app_from_config():
         default_model=config.default_model,
         on_set_default=_save_default,
     )
+
+    def _save_config():
+        store.save(config)
+
     return create_app(config=config, registry=registry, job_queue=job_queue,
-                      history=history, model_manager=manager)
+                      history=history, model_manager=manager,
+                      on_config_change=_save_config)
 
 
 def main():

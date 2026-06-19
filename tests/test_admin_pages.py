@@ -71,3 +71,17 @@ def test_gallery_shows_history(client):
 def test_gallery_empty_renders(client):
     r = client.get("/admin/gallery")
     assert r.status_code == 200
+
+
+def test_settings_shows_api_key(client):
+    r = client.get("/admin/settings")
+    assert r.status_code == 200
+    assert client.app.state.config.api_key in r.text
+
+
+def test_regenerate_key_changes_key(client):
+    old = client.app.state.config.api_key
+    r = client.post("/admin/api/regenerate-key")
+    assert r.status_code == 200
+    assert client.app.state.config.api_key != old
+    assert r.json()["api_key"] == client.app.state.config.api_key

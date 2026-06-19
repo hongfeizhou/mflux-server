@@ -65,6 +65,24 @@ def gallery_page(request: Request):
     return TEMPLATES.TemplateResponse(request, "gallery.html", {"entries": entries})
 
 
+@router.get("/admin/settings", response_class=HTMLResponse)
+def settings_page(request: Request):
+    redirect = _guard(request)
+    if redirect:
+        return redirect
+    return TEMPLATES.TemplateResponse(request, "settings.html",
+                                      {"cfg": request.app.state.config})
+
+
+@router.post("/admin/api/regenerate-key", dependencies=[Depends(require_admin)])
+def regenerate_key(request: Request):
+    config = request.app.state.config
+    config.api_key = "sk-" + _secrets.token_hex(24)
+    if getattr(request.app.state, "on_config_change", None):
+        request.app.state.on_config_change()
+    return {"api_key": config.api_key}
+
+
 @router.get("/admin/api/status", response_class=HTMLResponse,
             dependencies=[Depends(require_admin)])
 def status_fragment(request: Request):

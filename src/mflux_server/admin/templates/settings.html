@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}设置{% endblock %}
+{% block content %}
+<h1>设置</h1>
+<div class="card">
+  <h3>API Key</h3>
+  <p><code id="key">{{ cfg.api_key }}</code></p>
+  <button class="btn" hx-post="/admin/api/regenerate-key" hx-swap="none"
+          hx-confirm="重置后旧 Key 立即失效，确认？"
+          hx-on::after-request="location.reload()">重置 Key</button>
+  <p class="muted">在 OpenAI SDK 里用 <code>base_url=http://{{ cfg.host }}:{{ cfg.port }}/v1</code> + 此 Key。</p>
+</div>
+<div class="card">
+  <h3>生成默认</h3>
+  <table>
+    <tr><td>默认模型</td><td>{{ cfg.default_model }}</td></tr>
+    <tr><td>默认步数</td><td>{{ cfg.default_steps }}</td></tr>
+    <tr><td>监听地址</td><td>{{ cfg.host }}:{{ cfg.port }}</td></tr>
+    <tr><td>输出目录</td><td class="muted">{{ cfg.output_dir }}</td></tr>
+  </table>
+</div>
+{% endblock %}
