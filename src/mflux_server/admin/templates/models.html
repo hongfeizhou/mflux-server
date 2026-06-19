@@ -1,29 +1,29 @@
 {% extends "base.html" %}
-{% block title %}模型{% endblock %}
+{% block title %}{{ t('nav_models') }}{% endblock %}
 {% block content %}
-<h1>模型管理</h1>
+<h1>{{ t('models_title') }}</h1>
 <div class="card">
 <table>
-  <tr><th>名称</th><th>家族</th><th>状态</th><th>大小</th><th>操作</th></tr>
+  <tr><th>{{ t('col_name') }}</th><th>{{ t('col_family') }}</th><th>{{ t('col_status') }}</th><th>{{ t('col_size') }}</th><th>{{ t('col_actions') }}</th></tr>
   {% for m in models %}
   <tr id="model-{{ m.name }}">
-    <td>{{ m.name }} {% if m.is_default %}<span class="tag">默认</span>{% endif %}</td>
+    <td>{{ m.name }} {% if m.is_default %}<span class="tag">{{ t('tag_default') }}</span>{% endif %}</td>
     <td class="muted">{{ m.family }}</td>
-    <td>{% if m.downloaded %}已下载{% else %}<span class="muted">未下载</span>{% endif %}</td>
+    <td>{% if m.downloaded %}{{ t('downloaded') }}{% else %}<span class="muted">{{ t('not_downloaded') }}</span>{% endif %}</td>
     <td class="muted">{% if m.size_gb %}{{ "%.1f"|format(m.size_gb) }} GB{% else %}-{% endif %}</td>
     <td class="row">
       {% if not m.downloaded %}
-      <button class="btn" hx-post="/admin/api/models/{{ m.name }}/download" hx-swap="none">下载</button>
+      <button class="btn" hx-post="/admin/api/models/{{ m.name }}/download" hx-swap="none">{{ t('btn_download') }}</button>
       {% endif %}
-      <button class="btn" hx-post="/admin/api/models/{{ m.name }}/default" hx-swap="none">设为默认</button>
+      <button class="btn" hx-post="/admin/api/models/{{ m.name }}/default" hx-swap="none">{{ t('btn_set_default') }}</button>
       {% if m.downloaded %}
       <button class="btn danger" hx-delete="/admin/api/models/{{ m.name }}"
-              hx-confirm="确认删除 {{ m.name }} 的本地权重？" hx-swap="none">删除</button>
+              hx-confirm="{{ t('confirm_delete_model') }}" hx-swap="none">{{ t('btn_delete') }}</button>
       {% endif %}
     </td>
   </tr>
   {% endfor %}
 </table>
 </div>
-<p class="muted">下载为后台任务；下载/删除/设默认后刷新本页查看最新状态。</p>
+<p class="muted">{{ t('models_hint') }}</p>
 {% endblock %}

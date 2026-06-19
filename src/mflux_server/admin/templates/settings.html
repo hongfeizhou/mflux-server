@@ -1,22 +1,22 @@
 {% extends "base.html" %}
-{% block title %}设置{% endblock %}
+{% block title %}{{ t('nav_settings') }}{% endblock %}
 {% block content %}
-<h1>设置</h1>
+<h1>{{ t('settings_title') }}</h1>
 <div class="card">
-  <h3>API Key</h3>
+  <h3>{{ t('settings_apikey') }}</h3>
   <p><code id="key">{{ cfg.api_key }}</code></p>
   <button class="btn" hx-post="/admin/api/regenerate-key" hx-swap="none"
-          hx-confirm="重置后旧 Key 立即失效，确认？"
-          hx-on::after-request="location.reload()">重置 Key</button>
-  <p class="muted">在 OpenAI SDK 里用 <code>base_url=http://{{ cfg.host }}:{{ cfg.port }}/v1</code> + 此 Key。</p>
+          hx-confirm="{{ t('confirm_reset_key') }}"
+          hx-on::after-request="location.reload()">{{ t('btn_reset_key') }}</button>
+  <p class="muted">{{ t('settings_sdk_hint') }} <code>base_url=http://{{ cfg.host }}:{{ cfg.port }}/v1</code></p>
 </div>
 <div class="card">
-  <h3>生成默认</h3>
+  <h3>{{ t('settings_defaults') }}</h3>
   <table>
-    <tr><td>默认模型</td><td>{{ cfg.default_model }}</td></tr>
-    <tr><td>默认步数</td><td>{{ cfg.default_steps }}</td></tr>
-    <tr><td>监听地址</td><td>{{ cfg.host }}:{{ cfg.port }}</td></tr>
-    <tr><td>输出目录</td><td class="muted">{{ cfg.output_dir }}</td></tr>
+    <tr><td>{{ t('lbl_default_model') }}</td><td>{{ cfg.default_model }}</td></tr>
+    <tr><td>{{ t('lbl_default_steps') }}</td><td>{{ cfg.default_steps }}</td></tr>
+    <tr><td>{{ t('lbl_bind') }}</td><td>{{ cfg.host }}:{{ cfg.port }}</td></tr>
+    <tr><td>{{ t('lbl_output') }}</td><td class="muted">{{ cfg.output_dir }}</td></tr>
   </table>
 </div>
 {% endblock %}

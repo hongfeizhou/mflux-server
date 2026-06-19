@@ -33,14 +33,14 @@ def client(tmp_path):
 def test_dashboard_renders(client):
     r = client.get("/admin")
     assert r.status_code == 200
-    assert "仪表盘" in r.text
+    assert "Dashboard" in r.text
 
 
 def test_status_fragment_shows_counts(client):
     client.app.state.history.save(ONE_PX_PNG, prompt="x", model="z-image-turbo", params={})
     r = client.get("/admin/api/status")
     assert r.status_code == 200
-    assert "队列" in r.text or "历史" in r.text
+    assert "Queued" in r.text or "Images" in r.text
 
 
 def test_status_requires_auth(client):
