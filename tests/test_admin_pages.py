@@ -57,3 +57,17 @@ def test_models_page_lists_models(client):
 def test_models_page_redirects_anonymous(client):
     fresh = TestClient(client.app)
     assert fresh.get("/admin/models", follow_redirects=False).status_code in (302, 307)
+
+
+def test_gallery_shows_history(client):
+    client.app.state.history.save(ONE_PX_PNG, prompt="a unicorn",
+                                  model="z-image-turbo", params={"size": "256x256"})
+    r = client.get("/admin/gallery")
+    assert r.status_code == 200
+    assert "a unicorn" in r.text
+    assert "/files/" in r.text
+
+
+def test_gallery_empty_renders(client):
+    r = client.get("/admin/gallery")
+    assert r.status_code == 200

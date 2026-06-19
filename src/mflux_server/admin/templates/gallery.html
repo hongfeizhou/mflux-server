@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}画廊{% endblock %}
+{% block content %}
+<h1>画廊 / 历史</h1>
+{% if not entries %}<p class="muted">还没有生成记录。</p>{% endif %}
+<div class="grid">
+  {% for e in entries %}
+  <figure id="hist-{{ e.id }}">
+    <a href="/files/{{ e.id }}.png" target="_blank"><img src="/files/{{ e.id }}.png" alt=""></a>
+    <figcaption>
+      <div>{{ e.prompt[:60] }}</div>
+      <div class="muted">{{ e.model }}</div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn" hx-post="/admin/api/history/{{ e.id }}/rerun" hx-swap="none">重新生成</button>
+        <a class="btn" href="/files/{{ e.id }}.png" download>下载</a>
+        <button class="btn danger" hx-delete="/admin/api/history/{{ e.id }}"
+                hx-target="closest figure" hx-swap="delete"
+                hx-confirm="删除这张？">删除</button>
+      </div>
+    </figcaption>
+  </figure>
+  {% endfor %}
+</div>
+{% endblock %}

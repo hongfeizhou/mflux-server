@@ -56,6 +56,15 @@ def models_page(request: Request):
     return TEMPLATES.TemplateResponse(request, "models.html", {"models": models})
 
 
+@router.get("/admin/gallery", response_class=HTMLResponse)
+def gallery_page(request: Request):
+    redirect = _guard(request)
+    if redirect:
+        return redirect
+    entries = request.app.state.history.list()
+    return TEMPLATES.TemplateResponse(request, "gallery.html", {"entries": entries})
+
+
 @router.get("/admin/api/status", response_class=HTMLResponse,
             dependencies=[Depends(require_admin)])
 def status_fragment(request: Request):
