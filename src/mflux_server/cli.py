@@ -16,7 +16,7 @@ def build_app_from_config():
     store = ConfigStore(base_dir=base)
     config = store.load()
     registry = EngineRegistry()
-    registry.register(MfluxImageEngine())
+    registry.register(MfluxImageEngine(models_dir=config.models_dir))
     job_queue = JobQueue(registry)
     history = HistoryStore(output_dir=config.output_dir)
 
@@ -27,6 +27,7 @@ def build_app_from_config():
     manager = ModelManager(
         models_provider=registry.models,
         default_model=config.default_model,
+        models_dir=config.models_dir,
         on_set_default=_save_default,
     )
 

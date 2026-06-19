@@ -73,7 +73,8 @@ def models_page(request: Request):
     models = mgr.list() if mgr else []
     cached = mgr.list_cached() if mgr else []
     return TEMPLATES.TemplateResponse(request, "models.html",
-                                      {"models": models, "cached": cached})
+                                      {"models": models, "cached": cached,
+                                       "models_dir": request.app.state.config.models_dir})
 
 
 @router.get("/admin/gallery", response_class=HTMLResponse)

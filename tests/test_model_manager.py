@@ -1,39 +1,20 @@
 import time
-from mflux_server.models.manager import ModelManager
+import pytest
+from mflux_server.models.manager import ModelManager, parse_repo_id
 from mflux_server.engines.base import ModelInfo
 
 
 class _FakeHub:
-    def __init__(self, cached=None):
-        self._cached = cached or {}     # repo_id -> size_bytes
-        self.downloaded = []
-        self.deleted = []
+    def __init__(self):
+        self.calls = []
 
-    def scan_cache_dir(self):
-        hub = self
-
-        class _Revision:
-            commit_hash = "abc123"
-
-        class _Repo:
-            def __init__(self, rid, size):
-                self.repo_id = rid
-                self.size_on_disk = size
-                self.revisions = [_Revision()]
-
-        class _Info:
-            repos = [_Repo(rid, sz) for rid, sz in hub._cached.items()]
-
-            def delete_revisions(self, *hashes):
-                class _Strategy:
-                    def execute(self_inner):
-                        hub.deleted.append(hashes)
-                return _Strategy()
-        return _Info()
-
-    def snapshot_download(self, repo_id):
-        self.downloaded.append(repo_id)
-        self._cached[repo_id] = 123
+    def snapshot_download(self, repo_id, local_dir=None):
+        self.calls.append((repo_id, local_dir))
+        if local_dir:
+            import os
+            os.makedirs(local_dir, exist_ok=True)
+            with open(os.path.join(local_dir, "model.safetensors"), "wb") as f:
+                f.write(b"x" * 10)
 
 
 def _models():
@@ -41,94 +22,70 @@ def _models():
                       capabilities=["text-to-image"], repo_id="Tongyi-MAI/Z-Image-Turbo")]
 
 
-def test_list_marks_downloaded_and_default():
-    hub = _FakeHub(cached={"Tongyi-MAI/Z-Image-Turbo": 2_000_000_000})
-    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=hub)
-    rows = mgr.list()
-    row = rows[0]
-    assert row["name"] == "z-image-turbo"
-    assert row["downloaded"] is True
-    assert row["is_default"] is True
-    assert round(row["size_gb"], 1) == 2.0
+def _mk(tmp_path, hub=None, **kw):
+    return ModelManager(models_provider=_models, default_model="z-image-turbo",
+                        models_dir=tmp_path / "models", hub=hub or _FakeHub(), **kw)
 
 
-def test_list_marks_not_downloaded():
-    hub = _FakeHub(cached={})
-    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=hub)
-    assert mgr.list()[0]["downloaded"] is False
-    assert mgr.list()[0]["size_gb"] == 0
-
-
-def test_download_runs_in_background_and_completes():
-    hub = _FakeHub()
-    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=hub)
-    job_id = mgr.start_download("z-image-turbo")
-    for _ in range(100):
-        st = mgr.download_status(job_id)
-        if st["status"] in ("done", "error"):
-            break
-        time.sleep(0.02)
-    assert mgr.download_status(job_id)["status"] == "done"
-    assert "Tongyi-MAI/Z-Image-Turbo" in hub.downloaded
-
-
-def test_download_unknown_model_raises():
-    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=_FakeHub())
-    import pytest
-    with pytest.raises(KeyError):
-        mgr.start_download("ghost")
-
-
-def test_set_default_calls_callback():
-    saved = []
-    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo",
-                       hub=_FakeHub(), on_set_default=saved.append)
-    mgr.set_default("z-image-turbo")
-    assert saved == ["z-image-turbo"]
-    import pytest
-    with pytest.raises(KeyError):
-        mgr.set_default("ghost")
-
-
-def test_parse_repo_id_from_url_and_plain():
-    from mflux_server.models.manager import parse_repo_id
+def test_parse_repo_id():
     assert parse_repo_id("https://huggingface.co/org/model") == "org/model"
     assert parse_repo_id("https://huggingface.co/org/model/tree/main") == "org/model"
     assert parse_repo_id("  org/model/  ") == "org/model"
     assert parse_repo_id("huggingface.co/a/b") == "a/b"
 
 
-def test_start_download_repo_downloads_arbitrary():
+def test_list_not_downloaded_when_dir_empty(tmp_path):
+    row = _mk(tmp_path).list()[0]
+    assert row["downloaded"] is False
+    assert row["size_gb"] == 0
+    assert row["is_default"] is True
+
+
+def test_manual_copy_shows_in_list(tmp_path):
+    repo_dir = tmp_path / "models" / "Tongyi-MAI" / "Z-Image-Turbo"
+    repo_dir.mkdir(parents=True)
+    (repo_dir / "w.safetensors").write_bytes(b"y" * 2_000_000)
+    mgr = _mk(tmp_path)
+    assert mgr.list()[0]["downloaded"] is True
+    cached = mgr.list_cached()
+    assert cached[0]["repo_id"] == "Tongyi-MAI/Z-Image-Turbo"
+    assert cached[0]["size_gb"] > 0
+
+
+def test_download_goes_to_models_dir(tmp_path):
     hub = _FakeHub()
-    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=hub)
+    mgr = _mk(tmp_path, hub=hub)
     job_id = mgr.start_download_repo("some/other-model")
     for _ in range(100):
         if mgr.download_status(job_id)["status"] in ("done", "error"):
             break
         time.sleep(0.02)
     assert mgr.download_status(job_id)["status"] == "done"
-    assert "some/other-model" in hub.downloaded
+    repo_id, local_dir = hub.calls[-1]
+    assert repo_id == "some/other-model"
+    assert local_dir.replace("\\", "/").endswith("some/other-model")
+    assert any(r["repo_id"] == "some/other-model" for r in mgr.list_cached())
 
 
-def test_start_download_repo_rejects_empty():
-    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=_FakeHub())
-    import pytest
+def test_download_rejects_empty(tmp_path):
     with pytest.raises(ValueError):
-        mgr.start_download_repo("   ")
+        _mk(tmp_path).start_download_repo("   ")
 
 
-def test_list_cached_lists_all_repos():
-    hub = _FakeHub(cached={"a/one": 1_000_000_000, "b/two": 2_000_000_000})
-    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=hub)
-    rows = mgr.list_cached()
-    ids = [r["repo_id"] for r in rows]
-    assert ids == ["a/one", "b/two"]
-    assert round(rows[1]["size_gb"], 1) == 2.0
-
-
-def test_delete_repo_executes_when_present():
-    hub = _FakeHub(cached={"a/one": 1_000_000_000})
-    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=hub)
+def test_delete_repo(tmp_path):
+    repo_dir = tmp_path / "models" / "a" / "one"
+    repo_dir.mkdir(parents=True)
+    (repo_dir / "f").write_bytes(b"z")
+    mgr = _mk(tmp_path)
     assert mgr.delete_repo("a/one") is True
-    assert hub.deleted          # delete_revisions(...).execute() ran
+    assert not repo_dir.exists()
     assert mgr.delete_repo("missing/repo") is False
+
+
+def test_set_default_callback(tmp_path):
+    saved = []
+    mgr = _mk(tmp_path, on_set_default=saved.append)
+    mgr.set_default("z-image-turbo")
+    assert saved == ["z-image-turbo"]
+    with pytest.raises(KeyError):
+        mgr.set_default("ghost")

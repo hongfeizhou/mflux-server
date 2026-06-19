@@ -1,5 +1,7 @@
+import shutil
 import threading
 import uuid
+from pathlib import Path
 from typing import Callable, Optional
 
 
@@ -17,11 +19,13 @@ def parse_repo_id(text: str) -> str:
 
 
 class ModelManager:
+    """模型只看 / 只下到 models_dir（服务自己的目录），与机器全局 HF 缓存隔离。"""
+
     def __init__(self, models_provider: Callable, default_model: str,
-                 hub=None, on_set_default: Optional[Callable] = None):
-        # models_provider() -> list[ModelInfo]; hub defaults to real huggingface_hub
+                 models_dir, hub=None, on_set_default: Optional[Callable] = None):
         self._models_provider = models_provider
         self._default_model = default_model
+        self._models_dir = Path(models_dir) if models_dir else None
         self._on_set_default = on_set_default
         if hub is None:
             import huggingface_hub as hub  # lazy-load real implementation
@@ -35,45 +39,63 @@ class ModelManager:
                 return info
         raise KeyError(name)
 
-    def _cached_sizes(self) -> dict:
-        info = self._hub.scan_cache_dir()
-        return {repo.repo_id: repo.size_on_disk for repo in info.repos}
+    def _repo_path(self, repo_id: str) -> Optional[Path]:
+        return (self._models_dir / repo_id) if self._models_dir else None
+
+    def _local_repos(self) -> dict:
+        """扫描 models_dir 下的 <org>/<name> 目录（含手动复制进来的），返回 repo_id -> 字节大小。"""
+        base = self._models_dir
+        if not base or not base.exists():
+            return {}
+        out = {}
+        for org in base.iterdir():
+            if not org.is_dir():
+                continue
+            for name in org.iterdir():
+                if not name.is_dir():
+                    continue
+                size = sum(f.stat().st_size for f in name.rglob("*") if f.is_file())
+                out[f"{org.name}/{name.name}"] = size
+        return out
 
     def list(self) -> list:
-        sizes = self._cached_sizes()
+        local = self._local_repos()
         rows = []
         for m in self._models_provider():
-            size = sizes.get(m.repo_id, 0)
             rows.append({
                 "name": m.name,
                 "family": m.family,
                 "repo_id": m.repo_id,
                 "capabilities": m.capabilities,
-                "downloaded": m.repo_id in sizes,
-                "size_gb": size / 1e9,
+                "downloaded": m.repo_id in local,
+                "size_gb": local.get(m.repo_id, 0) / 1e9,
                 "is_default": m.name == self._default_model,
             })
         return rows
 
     def list_cached(self) -> list:
-        """返回磁盘上所有已缓存的 repo（含任意通过链接下载的）。"""
-        info = self._hub.scan_cache_dir()
-        rows = [{"repo_id": r.repo_id, "size_gb": r.size_on_disk / 1e9}
-                for r in info.repos]
-        return sorted(rows, key=lambda x: x["repo_id"])
+        """models_dir 里所有本地模型（含手动放入的），按 repo_id 排序。"""
+        return sorted(
+            ({"repo_id": rid, "size_gb": size / 1e9} for rid, size in self._local_repos().items()),
+            key=lambda x: x["repo_id"],
+        )
 
     def start_download_repo(self, repo_id: str) -> str:
-        """后台下载任意 HuggingFace repo_id，返回可轮询的 job_id。"""
+        """后台下载任意 HuggingFace repo_id 到 models_dir/<repo_id>，返回可轮询的 job_id。"""
         repo_id = (repo_id or "").strip()
         if not repo_id:
             raise ValueError("empty repo id")
+        target = self._repo_path(repo_id)
         job_id = uuid.uuid4().hex
         with self._lock:
             self._downloads[job_id] = {"status": "running", "repo_id": repo_id, "error": None}
 
         def _run():
             try:
-                self._hub.snapshot_download(repo_id)
+                if target is not None:
+                    self._hub.snapshot_download(repo_id, local_dir=str(target))
+                else:
+                    self._hub.snapshot_download(repo_id)
                 state, err = "done", None
             except Exception as exc:  # noqa: BLE001
                 state, err = "error", str(exc) or exc.__class__.__name__
@@ -92,14 +114,10 @@ class ModelManager:
             return dict(self._downloads[job_id])
 
     def delete_repo(self, repo_id: str) -> bool:
-        cache = self._hub.scan_cache_dir()
-        hashes = []
-        for repo in cache.repos:
-            if repo.repo_id == repo_id:
-                hashes = [rev.commit_hash for rev in repo.revisions]
-        if not hashes:
+        path = self._repo_path(repo_id)
+        if path is None or not path.exists():
             return False
-        cache.delete_revisions(*hashes).execute()
+        shutil.rmtree(path)
         return True
 
     def delete(self, name: str) -> bool:

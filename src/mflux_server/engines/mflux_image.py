@@ -20,9 +20,14 @@ class _ModelSpec:
     capabilities: list = None  # 例如 ["text-to-image", "image-to-image"]
 
 
-def _load_z_image_turbo(quantize):
+def _load_z_image_turbo(quantize, model_path):
     from mflux.models.z_image import ZImageTurbo  # 懒加载，仅 macOS 可用
-    return ZImageTurbo(quantize=quantize) if quantize else ZImageTurbo()
+    kwargs = {}
+    if quantize:
+        kwargs["quantize"] = quantize
+    if model_path:
+        kwargs["model_path"] = model_path
+    return ZImageTurbo(**kwargs)
 
 
 # 当前支持的模型表。新增模型 = 在此处加一行 _ModelSpec（机制已完整，无需改其他代码）。
@@ -38,8 +43,9 @@ _SPECS = {
 class MfluxImageEngine(BaseEngine):
     id = "mflux-image"
 
-    def __init__(self):
-        self._loaded = {}   # (model_name, quantize) -> mflux 模型实例
+    def __init__(self, models_dir=None):
+        self._loaded = {}   # (model_name, quantize, model_path) -> mflux 模型实例
+        self._models_dir = Path(models_dir) if models_dir else None
 
     def models(self) -> list:
         return [
@@ -48,12 +54,20 @@ class MfluxImageEngine(BaseEngine):
             for s in _SPECS.values()
         ]
 
+    def _local_path(self, model_name: str):
+        # models_dir/<repo_id> 存在则用本地权重，否则 None（回退到 mflux 默认下载）
+        if not self._models_dir:
+            return None
+        p = self._models_dir / _SPECS[model_name].repo_id
+        return str(p) if p.exists() else None
+
     def _get_model(self, model_name: str, quantize):
-        key = (model_name, quantize)
+        model_path = self._local_path(model_name)
+        key = (model_name, quantize, model_path)
         if key not in self._loaded:
             # 内存有限：加载新模型前清掉旧的
             self._loaded.clear()
-            self._loaded[key] = _SPECS[model_name].loader(quantize)
+            self._loaded[key] = _SPECS[model_name].loader(quantize, model_path)
         return self._loaded[key]
 
     def generate(self, req: GenerationRequest) -> list:

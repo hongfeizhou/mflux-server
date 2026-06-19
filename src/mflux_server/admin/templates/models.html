@@ -45,6 +45,7 @@
 
 <div class="card">
   <h3>{{ t('cached_models') }}</h3>
+  <p class="muted" style="font-size:12px">{{ t('models_dir_hint') }} <code>{{ models_dir }}</code></p>
   {% if not cached %}<p class="muted">{{ t('cached_empty') }}</p>{% endif %}
   {% if cached %}
   <table>

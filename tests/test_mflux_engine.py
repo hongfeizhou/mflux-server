@@ -35,7 +35,7 @@ class _FakeModel:
 def _patch_fake_model(monkeypatch):
     fake = _FakeModel()
     spec = mflux_image._SPECS["z-image-turbo"]
-    monkeypatch.setattr(spec, "loader", lambda quantize: fake)
+    monkeypatch.setattr(spec, "loader", lambda quantize, model_path=None: fake)
     return fake
 
 

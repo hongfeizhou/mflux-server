@@ -15,6 +15,7 @@ class Config:
     port: int = 8000
     default_model: str = "z-image-turbo"
     default_steps: int = 9
+    models_dir: str = ""
 
 
 class ConfigStore:
@@ -24,12 +25,16 @@ class ConfigStore:
 
     def load(self) -> Config:
         if self.path.exists():
-            data = json.loads(self.path.read_text(encoding="utf-8"))
-            return Config(**data)
+            cfg = Config(**json.loads(self.path.read_text(encoding="utf-8")))
+            if not cfg.models_dir:
+                cfg.models_dir = str(self.base_dir / "models")
+                self.save(cfg)
+            return cfg
         cfg = Config(
             api_key="sk-" + secrets.token_hex(24),
             admin_password=secrets.token_hex(8),
             output_dir=str(self.base_dir / "outputs"),
+            models_dir=str(self.base_dir / "models"),
         )
         self.save(cfg)
         return cfg
