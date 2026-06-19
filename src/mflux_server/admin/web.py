@@ -46,6 +46,8 @@ def logout(request: Request):
 
 @router.get("/admin/setlang")
 def setlang(request: Request, code: str = "en", next: str = "/admin"):
+    if not next.startswith("/"):
+        next = "/admin"
     resp = RedirectResponse(url=next, status_code=302)
     if code in SUPPORTED:
         resp.set_cookie("lang", code, max_age=31536000, httponly=False, samesite="lax")
