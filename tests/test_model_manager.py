@@ -13,7 +13,7 @@ class _FakeHub:
         hub = self
 
         class _Revision:
-            pass
+            commit_hash = "abc123"
 
         class _Repo:
             def __init__(self, rid, size):
@@ -88,3 +88,47 @@ def test_set_default_calls_callback():
     import pytest
     with pytest.raises(KeyError):
         mgr.set_default("ghost")
+
+
+def test_parse_repo_id_from_url_and_plain():
+    from mflux_server.models.manager import parse_repo_id
+    assert parse_repo_id("https://huggingface.co/org/model") == "org/model"
+    assert parse_repo_id("https://huggingface.co/org/model/tree/main") == "org/model"
+    assert parse_repo_id("  org/model/  ") == "org/model"
+    assert parse_repo_id("huggingface.co/a/b") == "a/b"
+
+
+def test_start_download_repo_downloads_arbitrary():
+    hub = _FakeHub()
+    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=hub)
+    job_id = mgr.start_download_repo("some/other-model")
+    for _ in range(100):
+        if mgr.download_status(job_id)["status"] in ("done", "error"):
+            break
+        time.sleep(0.02)
+    assert mgr.download_status(job_id)["status"] == "done"
+    assert "some/other-model" in hub.downloaded
+
+
+def test_start_download_repo_rejects_empty():
+    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=_FakeHub())
+    import pytest
+    with pytest.raises(ValueError):
+        mgr.start_download_repo("   ")
+
+
+def test_list_cached_lists_all_repos():
+    hub = _FakeHub(cached={"a/one": 1_000_000_000, "b/two": 2_000_000_000})
+    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=hub)
+    rows = mgr.list_cached()
+    ids = [r["repo_id"] for r in rows]
+    assert ids == ["a/one", "b/two"]
+    assert round(rows[1]["size_gb"], 1) == 2.0
+
+
+def test_delete_repo_executes_when_present():
+    hub = _FakeHub(cached={"a/one": 1_000_000_000})
+    mgr = ModelManager(models_provider=_models, default_model="z-image-turbo", hub=hub)
+    assert mgr.delete_repo("a/one") is True
+    assert hub.deleted          # delete_revisions(...).execute() ran
+    assert mgr.delete_repo("missing/repo") is False

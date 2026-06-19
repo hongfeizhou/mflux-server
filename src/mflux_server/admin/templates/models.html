@@ -2,6 +2,20 @@
 {% block title %}{{ t('nav_models') }}{% endblock %}
 {% block content %}
 <h1>{{ t('models_title') }}</h1>
+
+<div class="card">
+  <h3>{{ t('download_by_url') }}</h3>
+  <form hx-post="/admin/api/repos/download" hx-swap="none"
+        hx-on::after-request="if(event.detail.successful){this.reset();setTimeout(function(){location.reload()},1000)}">
+    <div class="row">
+      <input name="repo" class="field" style="flex:1"
+             placeholder="https://huggingface.co/org/model  or  org/model" required>
+      <button class="btn" type="submit">{{ t('btn_download') }}</button>
+    </div>
+  </form>
+  <p class="muted">{{ t('download_url_hint') }}</p>
+</div>
+
 <div class="card">
 <table>
   <tr><th>{{ t('col_name') }}</th><th>{{ t('col_family') }}</th><th>{{ t('col_status') }}</th><th>{{ t('col_size') }}</th><th>{{ t('col_actions') }}</th></tr>
@@ -26,4 +40,25 @@
 </table>
 </div>
 <p class="muted">{{ t('models_hint') }}</p>
+
+<div class="card">
+  <h3>{{ t('cached_models') }}</h3>
+  {% if not cached %}<p class="muted">{{ t('cached_empty') }}</p>{% endif %}
+  {% if cached %}
+  <table>
+    <tr><th>{{ t('col_name') }}</th><th>{{ t('col_size') }}</th><th>{{ t('col_actions') }}</th></tr>
+    {% for r in cached %}
+    <tr>
+      <td>{{ r.repo_id }}</td>
+      <td class="muted">{{ "%.1f"|format(r.size_gb) }} GB</td>
+      <td>
+        <button class="btn danger" hx-delete="/admin/api/repos/{{ r.repo_id }}"
+                hx-confirm="{{ t('confirm_delete_model') }}" hx-swap="none"
+                hx-on::after-request="location.reload()">{{ t('btn_delete') }}</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+</div>
 {% endblock %}

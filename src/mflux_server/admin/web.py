@@ -68,8 +68,11 @@ def models_page(request: Request):
     redirect = _guard(request)
     if redirect:
         return redirect
-    models = request.app.state.models.list() if request.app.state.models else []
-    return TEMPLATES.TemplateResponse(request, "models.html", {"models": models})
+    mgr = request.app.state.models
+    models = mgr.list() if mgr else []
+    cached = mgr.list_cached() if mgr else []
+    return TEMPLATES.TemplateResponse(request, "models.html",
+                                      {"models": models, "cached": cached})
 
 
 @router.get("/admin/gallery", response_class=HTMLResponse)

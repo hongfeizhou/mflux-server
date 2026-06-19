@@ -36,6 +36,18 @@ class _StubManager:
             raise KeyError(name)
         self.default = name
 
+    def list_cached(self):
+        return [{"repo_id": "org/fake", "size_gb": 1.5}]
+
+    def start_download_repo(self, repo_id):
+        self.downloads["repojob"] = {"status": "running", "repo_id": repo_id, "error": None}
+        self.last_repo = repo_id
+        return "repojob"
+
+    def delete_repo(self, repo_id):
+        self.deleted_repo = repo_id
+        return True
+
 
 @pytest.fixture
 def client(tmp_path):
@@ -103,3 +115,30 @@ def test_list_models_via_session_cookie(client):
     client.post("/admin/login", data={"password": pw})
     r = client.get("/admin/api/models")
     assert r.status_code == 200
+
+
+def test_list_repos(client):
+    r = client.get("/admin/api/repos", headers=_auth(client))
+    assert r.status_code == 200
+    assert r.json()["repos"][0]["repo_id"] == "org/fake"
+
+
+def test_download_repo_parses_url(client):
+    r = client.post("/admin/api/repos/download",
+                    headers=_auth(client),
+                    data={"repo": "https://huggingface.co/org/fake/tree/main"})
+    assert r.status_code == 200
+    assert r.json()["repo_id"] == "org/fake"
+    assert client.manager.last_repo == "org/fake"
+
+
+def test_download_repo_requires_auth(client):
+    r = client.post("/admin/api/repos/download", data={"repo": "org/fake"})
+    assert r.status_code == 401
+
+
+def test_delete_repo_with_slash_path(client):
+    r = client.request("DELETE", "/admin/api/repos/org/fake", headers=_auth(client))
+    assert r.status_code == 200
+    assert r.json()["deleted"] is True
+    assert client.manager.deleted_repo == "org/fake"

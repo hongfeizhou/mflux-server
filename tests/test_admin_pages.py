@@ -15,6 +15,9 @@ class _StubManager:
                  "size_gb": 32.8, "repo_id": "Tongyi-MAI/Z-Image-Turbo",
                  "family": "z-image", "capabilities": ["text-to-image"]}]
 
+    def list_cached(self):
+        return [{"repo_id": "Tongyi-MAI/Z-Image-Turbo", "size_gb": 32.8}]
+
 
 @pytest.fixture
 def client(tmp_path):

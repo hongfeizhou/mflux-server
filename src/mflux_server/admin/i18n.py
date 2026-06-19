@@ -40,6 +40,11 @@ STRINGS = {
     "confirm_delete_model": {"en": "Delete local weights for this model?", "zh": "确认删除该模型的本地权重？"},
     "models_hint": {"en": "Downloads run in the background; refresh to see status.",
                      "zh": "下载为后台任务；刷新本页查看最新状态。"},
+    "download_by_url": {"en": "Download from HuggingFace", "zh": "从 HuggingFace 下载"},
+    "download_url_hint": {"en": "Paste a HuggingFace URL or org/model id. This caches the weights to disk; a model is usable for generation only if the engine supports it.",
+                           "zh": "粘贴 HuggingFace 链接或 org/model。下载只是把权重缓存到磁盘；模型能否用于生成取决于引擎是否支持。"},
+    "cached_models": {"en": "Downloaded (cache)", "zh": "已下载（缓存）"},
+    "cached_empty": {"en": "Nothing downloaded yet.", "zh": "还没有下载任何模型。"},
 
     "gallery_title": {"en": "Gallery / History", "zh": "画廊 / 历史"},
     "gallery_empty": {"en": "No generations yet.", "zh": "还没有生成记录。"},
