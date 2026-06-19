@@ -8,6 +8,23 @@
 
 ---
 
+## 示例
+
+一条请求即可出图：
+
+```bash
+curl -s http://127.0.0.1:8000/v1/images/generations \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"z-image-turbo","prompt":"a red apple on a table","size":"768x768"}'
+```
+
+返回为 OpenAI 格式（`{ "data": [ { "b64_json": "..." } ] }`），把 base64 解码即得下面这张 PNG：
+
+<p align="center"><img src="docs/assets/example-apple.png" width="384" alt="a red apple on a table"></p>
+
+---
+
 ## 特性
 
 - **OpenAI 兼容 API**

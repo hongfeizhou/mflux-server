@@ -8,6 +8,23 @@ Wrap [mflux](https://github.com/filipstrand/mflux) (a port of FLUX / Z-Image and
 
 ---
 
+## Example
+
+Generate an image with a single request:
+
+```bash
+curl -s http://127.0.0.1:8000/v1/images/generations \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"z-image-turbo","prompt":"a red apple on a table","size":"768x768"}'
+```
+
+The response is OpenAI-shaped (`{ "data": [ { "b64_json": "..." } ] }`); decode the base64 to get the PNG below:
+
+<p align="center"><img src="docs/assets/example-apple.png" width="384" alt="a red apple on a table"></p>
+
+---
+
 ## Features
 
 - **OpenAI-compatible API**
