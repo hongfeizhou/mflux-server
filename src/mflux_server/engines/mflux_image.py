@@ -17,6 +17,7 @@ class _ModelSpec:
     default_steps: int
     # loader(quantize) -> mflux 模型实例。懒加载：函数体内才 import mflux。
     loader: Callable
+    capabilities: list = None  # 例如 ["text-to-image", "image-to-image"]
 
 
 def _load_z_image_turbo(quantize):
@@ -29,6 +30,7 @@ _SPECS = {
     "z-image-turbo": _ModelSpec(
         name="z-image-turbo", repo_id="Tongyi-MAI/Z-Image-Turbo",
         family="z-image", default_steps=9, loader=_load_z_image_turbo,
+        capabilities=["text-to-image", "image-to-image"],
     ),
 }
 
@@ -42,7 +44,7 @@ class MfluxImageEngine(BaseEngine):
     def models(self) -> list:
         return [
             ModelInfo(name=s.name, family=s.family, engine=self.id,
-                      capabilities=["text-to-image"], repo_id=s.repo_id)
+                      capabilities=(s.capabilities or ["text-to-image"]), repo_id=s.repo_id)
             for s in _SPECS.values()
         ]
 

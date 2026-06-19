@@ -73,13 +73,15 @@ STRINGS = {
     "lbl_steps": {"en": "Steps (optional)", "zh": "步数（可选）"},
     "lbl_seed": {"en": "Seed (optional)", "zh": "种子（可选）"},
     "lbl_negative": {"en": "Negative prompt (optional)", "zh": "反向提示词（可选）"},
-    "lbl_image": {"en": "Source image (optional, for img2img)", "zh": "源图（可选，用于图生图）"},
+    "lbl_image": {"en": "Source image", "zh": "源图"},
     "lbl_strength": {"en": "Strength", "zh": "强度"},
     "btn_generate": {"en": "Generate", "zh": "生成"},
-    "generate_hint": {"en": "Leave source image empty for text-to-image; add one for image-to-image.",
-                       "zh": "不传源图为文生图；上传源图为图生图。"},
     "generating": {"en": "Generating…", "zh": "生成中…"},
     "generate_failed": {"en": "Generation failed", "zh": "生成失败"},
+    "tab_t2i": {"en": "Text-to-image", "zh": "文生图"},
+    "tab_img2img": {"en": "Image-to-image", "zh": "图生图"},
+    "no_img2img_models": {"en": "No image-to-image models installed yet.",
+                           "zh": "还没有支持图生图的模型。"},
 }
 
 

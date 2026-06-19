@@ -27,6 +27,21 @@ def test_generate_page_renders(client):
     r = client.get("/admin/generate")
     assert r.status_code == 200
     assert 'name="prompt"' in r.text
+    # text-to-image tab has no source-image upload, but links to the img2img tab
+    assert 'name="image"' not in r.text
+    assert "/admin/generate/edit" in r.text
+
+
+def test_edit_page_renders(client):
+    r = client.get("/admin/generate/edit")
+    assert r.status_code == 200
+    assert 'name="image"' in r.text
+    assert 'name="strength"' in r.text
+
+
+def test_edit_page_redirects_anonymous(client):
+    fresh = TestClient(client.app)
+    assert fresh.get("/admin/generate/edit", follow_redirects=False).status_code in (302, 307)
 
 
 def test_generate_page_redirects_anonymous(client):

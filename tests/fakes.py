@@ -16,8 +16,8 @@ class FakeEngine(BaseEngine):
         self.calls = []
 
     def models(self):
-        return [ModelInfo(name=self.model_name, family="fake",
-                          engine=self.id, capabilities=["text-to-image"])]
+        return [ModelInfo(name=self.model_name, family="fake", engine=self.id,
+                          capabilities=["text-to-image", "image-to-image"])]
 
     def generate(self, req: GenerationRequest):
         self.calls.append(req)

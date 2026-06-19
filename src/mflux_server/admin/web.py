@@ -118,8 +118,21 @@ def generate_page(request: Request):
     redirect = _guard(request)
     if redirect:
         return redirect
-    models = request.app.state.registry.models()
-    return TEMPLATES.TemplateResponse(request, "generate.html", {"models": models})
+    models = [m for m in request.app.state.registry.models()
+              if "text-to-image" in m.capabilities]
+    return TEMPLATES.TemplateResponse(request, "generate.html",
+                                      {"models": models, "active": "text"})
+
+
+@router.get("/admin/generate/edit", response_class=HTMLResponse)
+def generate_edit_page(request: Request):
+    redirect = _guard(request)
+    if redirect:
+        return redirect
+    models = [m for m in request.app.state.registry.models()
+              if "image-to-image" in m.capabilities]
+    return TEMPLATES.TemplateResponse(request, "generate_edit.html",
+                                      {"models": models, "active": "edit"})
 
 
 def _parse_gen_size(size: str):
