@@ -64,7 +64,7 @@ python3.11 -m venv .venv
 ## 快速开始
 
 ```bash
-.venv/bin/mflux-server start          # 默认 127.0.0.1:8000
+.venv/bin/mfserve start               # 默认 127.0.0.1:8000
 # 启动时会打印 API key 和 admin 密码，并写入 ~/.mflux-server/config.json
 ```
 
@@ -175,7 +175,7 @@ FastAPI 单进程 (默认 127.0.0.1:8000)
 
 ```
 src/mflux_server/
-  cli.py                 # mflux-server start
+  cli.py                 # mfserve start
   app.py                 # FastAPI 装配
   api/openai.py          # /v1 路由 + 参数映射
   api/auth.py            # Bearer 鉴权

@@ -64,7 +64,7 @@ python3.11 -m venv .venv
 ## Quick start
 
 ```bash
-.venv/bin/mflux-server start          # defaults to 127.0.0.1:8000
+.venv/bin/mfserve start               # defaults to 127.0.0.1:8000
 # On start it prints the API key and admin password, and writes ~/.mflux-server/config.json
 ```
 
@@ -175,7 +175,7 @@ Directory layout:
 
 ```
 src/mflux_server/
-  cli.py                 # mflux-server start
+  cli.py                 # mfserve start
   app.py                 # FastAPI assembly
   api/openai.py          # /v1 routes + param mapping
   api/auth.py            # Bearer auth

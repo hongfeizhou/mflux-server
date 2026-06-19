@@ -21,7 +21,7 @@ mflux = ["mflux"]
 dev = ["pytest>=8", "httpx>=0.27"]
 
 [project.scripts]
-mflux-server = "mflux_server.cli:main"
+mfserve = "mflux_server.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mflux_server"]

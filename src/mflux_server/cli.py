@@ -39,7 +39,7 @@ def build_app_from_config():
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="mflux-server")
+    parser = argparse.ArgumentParser(prog="mfserve")
     sub = parser.add_subparsers(dest="command", required=True)
     start = sub.add_parser("start", help="Start the server")
     start.add_argument("--host", default=None)
