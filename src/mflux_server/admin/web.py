@@ -2,13 +2,14 @@ import secrets as _secrets
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from mflux_server.admin.auth import is_authed, require_admin
 from mflux_server.admin.i18n import i18n_context, SUPPORTED
 from mflux_server.engines.base import GenerationRequest
+from mflux_server.models.manager import parse_repo_id
 
 TEMPLATES = Jinja2Templates(
     directory=str(Path(__file__).parent / "templates"),
@@ -186,3 +187,37 @@ async def generate_action(
                                            "image_strength": strength,
                                            "duration": round(job.duration, 2) if job.duration is not None else None})
     return TEMPLATES.TemplateResponse(request, "_result.html", {"entry": entry, "error": None})
+
+
+@router.post("/admin/repos/download", response_class=HTMLResponse,
+             dependencies=[Depends(require_admin)])
+def repos_download_ui(request: Request, repo: str = Form(...)):
+    repo_id = parse_repo_id(repo)
+    job_id = request.app.state.models.start_download_repo(repo_id)
+    return TEMPLATES.TemplateResponse(request, "_download.html",
+                                      {"job_id": job_id, "repo_id": repo_id,
+                                       "status": "running", "error": None})
+
+
+@router.post("/admin/models/{name}/download-ui", response_class=HTMLResponse,
+             dependencies=[Depends(require_admin)])
+def model_download_ui(name: str, request: Request):
+    try:
+        job_id = request.app.state.models.start_download(name)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Model not found: {name}")
+    return TEMPLATES.TemplateResponse(request, "_download.html",
+                                      {"job_id": job_id, "repo_id": name,
+                                       "status": "running", "error": None})
+
+
+@router.get("/admin/repos/download/{job_id}", response_class=HTMLResponse,
+            dependencies=[Depends(require_admin)])
+def repos_download_status_ui(job_id: str, request: Request):
+    try:
+        st = request.app.state.models.download_status(job_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Download job not found")
+    return TEMPLATES.TemplateResponse(request, "_download.html",
+                                      {"job_id": job_id, "repo_id": st.get("repo_id"),
+                                       "status": st.get("status"), "error": st.get("error")})

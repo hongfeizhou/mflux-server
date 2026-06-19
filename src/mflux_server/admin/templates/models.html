@@ -5,14 +5,15 @@
 
 <div class="card">
   <h3>{{ t('download_by_url') }}</h3>
-  <form hx-post="/admin/api/repos/download" hx-swap="none"
-        hx-on::after-request="if(event.detail.successful){this.reset();setTimeout(function(){location.reload()},1000)}">
+  <form hx-post="/admin/repos/download" hx-target="#dl-status" hx-swap="innerHTML"
+        hx-on::after-request="if(event.detail.successful){this.reset()}">
     <div class="row">
       <input name="repo" class="field" style="flex:1"
              placeholder="https://huggingface.co/org/model  or  org/model" required>
       <button class="btn" type="submit">{{ t('btn_download') }}</button>
     </div>
   </form>
+  <div id="dl-status" style="margin-top:8px"></div>
   <p class="muted">{{ t('download_url_hint') }}</p>
 </div>
 
@@ -27,7 +28,8 @@
     <td class="muted">{% if m.size_gb %}{{ "%.1f"|format(m.size_gb) }} GB{% else %}-{% endif %}</td>
     <td class="row">
       {% if not m.downloaded %}
-      <button class="btn" hx-post="/admin/api/models/{{ m.name }}/download" hx-swap="none">{{ t('btn_download') }}</button>
+      <button class="btn" hx-post="/admin/models/{{ m.name }}/download-ui"
+              hx-target="#dl-status" hx-swap="innerHTML">{{ t('btn_download') }}</button>
       {% endif %}
       <button class="btn" hx-post="/admin/api/models/{{ m.name }}/default" hx-swap="none">{{ t('btn_set_default') }}</button>
       {% if m.downloaded %}

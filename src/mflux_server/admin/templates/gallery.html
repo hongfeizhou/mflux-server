@@ -3,31 +3,34 @@
 {% block content %}
 <h1>{{ t('gallery_title') }}</h1>
 {% if not entries %}<p class="muted">{{ t('gallery_empty') }}</p>{% endif %}
-<div class="grid">
+{% if entries %}
+<div class="card">
+<table>
+  <tr>
+    <th></th><th>{{ t('col_prompt') }}</th><th>{{ t('col_model') }}</th>
+    <th>{{ t('hist_time') }}</th><th>{{ t('col_actions') }}</th>
+  </tr>
   {% for e in entries %}
-  <figure id="hist-{{ e.id }}">
-    <a href="/files/{{ e.id }}.png" target="_blank"><img src="/files/{{ e.id }}.png" alt=""></a>
-    <figcaption>
-      {% set p = e.params or {} %}
-      <div style="word-break:break-word" title="{{ e.prompt }}">{{ e.prompt }}</div>
-      <div class="muted" style="margin-top:4px">{{ e.model }}</div>
-      <div class="muted" style="font-size:11px;margin-top:2px">
-        {% if p.get('size') %}{{ t('hist_size') }} {{ p.get('size') }}{% endif %}
-        {% if p.get('steps') is not none %} · {{ t('hist_steps') }} {{ p.get('steps') }}{% endif %}
-        {% if p.get('seed') is not none %} · {{ t('hist_seed') }} {{ p.get('seed') }}{% endif %}
-        {% if p.get('guidance') is not none %} · {{ t('hist_guidance') }} {{ p.get('guidance') }}{% endif %}
-        {% if p.get('image_strength') is not none %} · {{ t('hist_strength') }} {{ p.get('image_strength') }}{% endif %}
-        {% if p.get('duration') is not none %} · {{ t('hist_time') }} {{ "%.1f"|format(p.get('duration')) }}s{% endif %}
-      </div>
-      <div class="row" style="margin-top:6px">
-        <button class="btn" hx-post="/admin/api/history/{{ e.id }}/rerun" hx-swap="none">{{ t('btn_regenerate') }}</button>
-        <a class="btn" href="/files/{{ e.id }}.png" download>{{ t('btn_download_file') }}</a>
-        <button class="btn danger" hx-delete="/admin/api/history/{{ e.id }}"
-                hx-target="closest figure" hx-swap="delete"
-                hx-confirm="{{ t('confirm_delete_image') }}">{{ t('btn_delete') }}</button>
-      </div>
-    </figcaption>
-  </figure>
+  {% set p = e.params or {} %}
+  <tr id="hist-{{ e.id }}">
+    <td><a href="/files/{{ e.id }}.png" target="_blank"><img src="/files/{{ e.id }}.png"
+           style="width:48px;height:48px;object-fit:cover;border-radius:6px;display:block"></a></td>
+    <td style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+        title="{{ e.prompt }}">{{ e.prompt }}</td>
+    <td class="muted">{{ e.model }}
+      {% if p.get('size') %}<br><span style="font-size:11px">{{ p.get('size') }}{% if p.get('seed') is not none %} · {{ t('hist_seed') }} {{ p.get('seed') }}{% endif %}</span>{% endif %}
+    </td>
+    <td class="muted">{% if p.get('duration') is not none %}{{ "%.1f"|format(p.get('duration')) }}s{% else %}-{% endif %}</td>
+    <td class="row">
+      <button class="btn" hx-post="/admin/api/history/{{ e.id }}/rerun" hx-swap="none">{{ t('btn_regenerate') }}</button>
+      <a class="btn" href="/files/{{ e.id }}.png" download>{{ t('btn_download_file') }}</a>
+      <button class="btn danger" hx-delete="/admin/api/history/{{ e.id }}"
+              hx-target="closest tr" hx-swap="delete"
+              hx-confirm="{{ t('confirm_delete_image') }}">{{ t('btn_delete') }}</button>
+    </td>
+  </tr>
   {% endfor %}
+</table>
 </div>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,11 @@
+{% if status == 'running' %}
+<div class="muted" hx-get="/admin/repos/download/{{ job_id }}"
+     hx-trigger="every 2s" hx-swap="outerHTML">
+  ⏳ {{ t('downloading') }} {{ repo_id }}…
+</div>
+{% elif status == 'done' %}
+<div class="muted">✓ {{ t('download_done') }}: {{ repo_id }} —
+  <a href="/admin/models">{{ t('refresh_list') }}</a></div>
+{% else %}
+<div class="err">✗ {{ repo_id }}: {{ error }}</div>
+{% endif %}

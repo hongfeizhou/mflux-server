@@ -45,6 +45,9 @@ STRINGS = {
                            "zh": "粘贴 HuggingFace 链接或 org/model。下载只是把权重缓存到磁盘；模型能否用于生成取决于引擎是否支持。"},
     "cached_models": {"en": "Downloaded (cache)", "zh": "已下载（缓存）"},
     "cached_empty": {"en": "Nothing downloaded yet.", "zh": "还没有下载任何模型。"},
+    "downloading": {"en": "Downloading", "zh": "下载中"},
+    "download_done": {"en": "Downloaded", "zh": "下载完成"},
+    "refresh_list": {"en": "refresh list", "zh": "刷新列表"},
 
     "gallery_title": {"en": "Gallery / History", "zh": "画廊 / 历史"},
     "gallery_empty": {"en": "No generations yet.", "zh": "还没有生成记录。"},
