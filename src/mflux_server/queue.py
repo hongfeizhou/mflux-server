@@ -1,3 +1,4 @@
+import logging
 import queue as _queue
 import threading
 import time
@@ -7,6 +8,8 @@ from typing import Optional
 
 from mflux_server.engines.base import GenerationRequest
 from mflux_server.engines.registry import EngineRegistry
+
+logger = logging.getLogger("mflux_server.queue")
 
 
 @dataclass
@@ -59,6 +62,8 @@ class JobQueue:
             job = self._q.get()
             job.status = "running"
             started = time.time()
+            logger.info("job %s start model=%s prompt=%r", job.id[:8],
+                        job.request.model, job.request.prompt[:80])
             try:
                 engine = self._registry.engine_for(job.request.model)
                 job.result = engine.generate(job.request)
@@ -68,5 +73,11 @@ class JobQueue:
                 job.status = "error"
             finally:
                 job.duration = time.time() - started
+                if job.status == "done":
+                    logger.info("job %s done model=%s in %.1fs", job.id[:8],
+                                job.request.model, job.duration)
+                else:
+                    logger.error("job %s error model=%s: %s", job.id[:8],
+                                 job.request.model, job.error)
                 job.done.set()
                 self._q.task_done()

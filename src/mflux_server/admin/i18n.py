@@ -6,6 +6,7 @@ STRINGS = {
     "nav_gallery": {"en": "Gallery", "zh": "画廊"},
     "nav_generate": {"en": "Generate", "zh": "生成"},
     "nav_settings": {"en": "Settings", "zh": "设置"},
+    "nav_logs": {"en": "Logs", "zh": "日志"},
     "nav_logout": {"en": "Log out", "zh": "登出"},
     "lang_en": {"en": "EN", "zh": "EN"},
     "lang_zh": {"en": "中文", "zh": "中文"},

@@ -9,7 +9,8 @@ from mflux_server.admin import history_api, web as admin_web
 from mflux_server.api import admin_models, files, openai
 
 
-def create_app(config, registry, job_queue, history, model_manager=None, on_config_change=None) -> FastAPI:
+def create_app(config, registry, job_queue, history, model_manager=None,
+               on_config_change=None, log_file=None) -> FastAPI:
     app = FastAPI(title="mflux-server")
     app.state.config = config
     app.state.registry = registry
@@ -17,6 +18,7 @@ def create_app(config, registry, job_queue, history, model_manager=None, on_conf
     app.state.history = history
     app.state.models = model_manager
     app.state.on_config_change = on_config_change
+    app.state.log_file = log_file
 
     @app.on_event("startup")
     def _start_worker():

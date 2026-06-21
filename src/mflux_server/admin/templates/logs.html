@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_logs') }}{% endblock %}
+{% block content %}
+<h1>{{ t('nav_logs') }}</h1>
+<div class="card">
+  <pre id="logbox" style="max-height:70vh;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:12px;margin:0"
+       hx-get="/admin/api/logs" hx-trigger="load, every 3s" hx-swap="innerHTML">{{ t('generating') }}</pre>
+</div>
+{% endblock %}

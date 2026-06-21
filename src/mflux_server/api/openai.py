@@ -74,7 +74,7 @@ def generations(body: GenerationsBody, request: Request):
 
 
 @router.post("/v1/images/edits", dependencies=[Depends(require_api_key)])
-async def edits(
+def edits(
     request: Request,
     image: UploadFile = File(...),
     prompt: str = Form(...),
@@ -94,7 +94,7 @@ async def edits(
     if state.registry.find_model(model_name) is None:
         raise HTTPException(status_code=404, detail=f"Model not found: {model_name}")
     width, height = _parse_size(size)
-    init_bytes = await image.read()
+    init_bytes = image.file.read()
     gen_req = GenerationRequest(
         model=model_name, prompt=prompt, n=n, width=width, height=height,
         steps=steps, guidance=guidance, seed=seed, quantize=quantize,

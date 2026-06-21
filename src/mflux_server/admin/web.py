@@ -150,7 +150,7 @@ def _parse_gen_size(size: str):
 
 @router.post("/admin/api/generate", response_class=HTMLResponse,
              dependencies=[Depends(require_admin)])
-async def generate_action(
+def generate_action(
     request: Request,
     prompt: str = Form(...),
     model: Optional[str] = Form(None),
@@ -169,7 +169,7 @@ async def generate_action(
     width, height = _parse_gen_size(size)
     init_bytes = None
     if image is not None:
-        data = await image.read()
+        data = image.file.read()
         init_bytes = data or None
     gen_req = GenerationRequest(
         model=model_name, prompt=prompt, width=width, height=height,
@@ -222,3 +222,25 @@ def repos_download_status_ui(job_id: str, request: Request):
     return TEMPLATES.TemplateResponse(request, "_download.html",
                                       {"job_id": job_id, "repo_id": st.get("repo_id"),
                                        "status": st.get("status"), "error": st.get("error")})
+
+
+@router.get("/admin/logs", response_class=HTMLResponse)
+def logs_page(request: Request):
+    redirect = _guard(request)
+    if redirect:
+        return redirect
+    return TEMPLATES.TemplateResponse(request, "logs.html", {})
+
+
+@router.get("/admin/api/logs", response_class=HTMLResponse,
+            dependencies=[Depends(require_admin)])
+def logs_tail(request: Request):
+    path = getattr(request.app.state, "log_file", None)
+    text = ""
+    if path:
+        p = Path(path)
+        if p.exists():
+            data = p.read_bytes()[-64 * 1024:]
+            lines = data.decode("utf-8", errors="replace").splitlines()
+            text = "\n".join(lines[-300:])
+    return TEMPLATES.TemplateResponse(request, "_logs.html", {"text": text})
