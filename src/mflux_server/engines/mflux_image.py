@@ -131,7 +131,17 @@ class MfluxImageEngine(BaseEngine):
             finally:
                 if init_path is not None:
                     os.unlink(init_path)
+        self._release_cache()
         return images
+
+    @staticmethod
+    def _release_cache():
+        # 生成后释放 MLX 缓冲池（不卸载权重，下次仍快）。非 Apple 平台无 mlx，忽略。
+        try:
+            import mlx.core as mx
+            mx.clear_cache()
+        except Exception:
+            pass
 
     @staticmethod
     def _write_init_image(data: bytes) -> str:
